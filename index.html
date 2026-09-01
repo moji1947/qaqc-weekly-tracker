@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QA/QC Weekly Sync</title>
+<style>
+  html,body{margin:0;background:#F4F6F5}
+  :root{
+    --bg:#F4F6F5; --surface:#FFFFFF; --ink:#1A1A1A; --muted:#6B7280;
+    --line:#D9DDDC; --header:#1F3B4D; --header-dim:#3A5568;
+    --done-bg:#E9F6EE; --done-text:#1E7A44;
+    --next-bg:#FDF3E3; --next-text:#8A5A05;
+    --accent:#1C6E8C;
+  }
+  *{box-sizing:border-box}
+  #qq2{font-family:Calibri,'Segoe UI',Arial,sans-serif;color:var(--ink);background:var(--surface);
+    border-radius:8px;overflow:hidden;border:1px solid var(--line);font-size:14px;
+    max-width:1100px;margin:20px auto}
+  #qq2 button{font-family:inherit;cursor:pointer;border-radius:4px;transition:background-color 150ms ease,border-color 150ms ease,color 150ms ease}
+  #qq2 button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  #qq2 input,#qq2 select{font-family:inherit;color:var(--ink)}
+  #qq2 ::selection{background:var(--accent);color:#fff}
+  #qq2 td.qq2-no{font-variant-numeric:tabular-nums}
+
+  .qq2-header{background:var(--header);color:#fff;padding:12px 18px}
+  .qq2-header-row{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  .qq2-title{font-size:17px;font-weight:700}
+  .qq2-week-select{background:#fff;color:var(--header);border:1px solid transparent;
+    font-weight:700;font-size:12.5px;padding:5px 9px;border-radius:4px;white-space:nowrap;
+    max-width:220px}
+  .qq2-week-select:hover{background:#F1F5F6}
+  .qq2-week-select:focus-visible{outline:2px solid #fff;outline-offset:1px}
+  .qq2-newweek{background:transparent;border:1px dashed #7E97A3;color:#D7E2E8;font-size:12.5px;
+    padding:5px 11px;border-radius:4px;white-space:nowrap}
+  .qq2-newweek:hover{border-color:#fff;color:#fff}
+  .qq2-newweek-form{display:none;gap:8px;margin-top:9px}
+  .qq2-newweek-form.open{display:flex}
+  .qq2-newweek-form input{flex:1;max-width:260px;background:#fff;border:1px solid var(--line);
+    padding:6px 9px;border-radius:4px;font-size:13px}
+  .qq2-newweek-form button{background:var(--accent);border:none;color:#fff;padding:6px 13px;
+    border-radius:4px;font-size:12.5px;font-weight:600}
+  .qq2-newweek-form .qq2-cancel{background:transparent;color:#D7E2E8;border:1px solid #7E97A3}
+
+  .qq2-toolbar{display:flex;align-items:center;justify-content:space-between;
+    padding:9px 18px;border-bottom:1px solid var(--line);background:#FAFBFB;flex-wrap:wrap;gap:8px}
+  .qq2-stats{font-size:13px;color:var(--muted)}
+  .qq2-stats b{color:var(--ink)}
+  .qq2-stats .sd{color:var(--done-text);font-weight:700}
+  .qq2-stats .sn{color:var(--next-text);font-weight:700}
+  .qq2-sync{font-size:11.5px;color:var(--muted)}
+  .qq2-sync .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#8FBF9F;margin-right:5px}
+  .qq2-sync.offline .dot{background:#C4CBCE}
+  .qq2-extra-toggle{font-size:12.5px;color:var(--accent);background:transparent;border:1px solid var(--line);
+    padding:5px 10px;border-radius:4px}
+  .qq2-extra-toggle:hover{background:#EEF4F6}
+  .qq2-toolbar-btns{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+  .qq2-tagbtn{width:24px;height:24px;border:1px solid var(--line);background:#fff;border-radius:4px;
+    font-size:12px;color:var(--muted);margin:5px auto;display:block}
+  .qq2-tagbtn:hover{border-color:var(--accent);color:var(--accent)}
+  .qq2-tagbtn.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+
+  .qq2-export{display:none;border-top:1px solid var(--line);background:#FAFBFB;padding:14px 18px}
+  .qq2-export.open{display:block}
+  .qq2-export-preview{width:100%;min-height:260px;border:1px solid var(--line);border-radius:4px;
+    padding:12px;font-size:13px;line-height:1.6;font-family:inherit;background:#fff;white-space:pre-wrap}
+  .qq2-export-actions{display:flex;gap:8px;margin-top:10px;align-items:center}
+  .qq2-copy-btn{background:var(--accent);border:none;color:#fff;padding:8px 16px;border-radius:4px;
+    font-size:13px;font-weight:600}
+  .qq2-copy-btn:hover{opacity:0.9}
+  .qq2-copy-msg{font-size:12.5px;color:var(--done-text);opacity:0;transition:opacity .2s}
+  .qq2-copy-msg.show{opacity:1}
+
+  .qq2-body{padding:14px 18px 20px}
+  .qq2-cat{margin-top:22px}
+  .qq2-cat:first-child{margin-top:0}
+  .qq2-cat-title{font-size:13.5px;font-weight:700;background:#EDF1F2;padding:7px 10px;
+    border-radius:4px 4px 0 0;border:1px solid var(--line);border-bottom:none}
+
+  table.qq2-table{width:100%;border-collapse:collapse;border:1px solid var(--line)}
+  table.qq2-table th{background:#F3F5F5;font-size:12px;font-weight:700;text-align:left;
+    padding:6px 8px;border:1px solid var(--line);color:var(--muted)}
+  table.qq2-table td{border:1px solid var(--line);padding:0;vertical-align:middle}
+  table.qq2-table td.qq2-no{text-align:center;font-size:12.5px;color:var(--muted);padding:6px 4px}
+  tr.qq2-row-done{background:var(--done-bg);transition:background-color 150ms ease}
+  tr.qq2-row-next{background:var(--next-bg);transition:background-color 150ms ease}
+
+  .qq2-cell-input{width:100%;border:none;background:transparent;padding:7px 8px;font-size:13.5px;
+    color:var(--ink)}
+  .qq2-cell-input:focus{outline:2px solid var(--accent);outline-offset:-2px;background:#fff}
+  textarea.qq2-cell-input{resize:none;font-family:inherit;line-height:1.4;min-height:34px}
+  select.qq2-cell-input{padding:7px 6px}
+  input.qq2-cell-input.note{color:var(--muted);font-style:italic}
+  input.qq2-cell-input.note:focus{font-style:normal;color:var(--ink)}
+
+  .qq2-status-cell{padding:0 !important}
+  .qq2-status-btn{width:100%;height:100%;border:none;background:transparent;font-size:12.5px;
+    font-weight:700;padding:7px 6px;text-align:center}
+  tr.qq2-row-done .qq2-status-btn{color:var(--done-text)}
+  tr.qq2-row-next .qq2-status-btn{color:var(--next-text)}
+  .qq2-status-btn:hover{text-decoration:underline}
+
+  .qq2-del{width:26px;text-align:center;color:#C4CBCE;border:none;background:transparent;font-size:16px}
+  .qq2-del:hover{color:#B23A3A}
+
+  .qq2-addrow{display:block;width:100%;text-align:left;background:#FAFBFB;border:1px solid var(--line);
+    border-top:none;color:var(--muted);font-size:12.5px;padding:6px 10px}
+  .qq2-addrow:hover{color:var(--accent);background:#EEF4F6}
+
+  .qq2-empty{border:1px solid var(--line);border-top:none;padding:10px;font-size:12.5px;
+    color:var(--muted);font-style:italic}
+  .qq2-loading{padding:36px;text-align:center;color:var(--muted);font-size:13px}
+  .qq2-extra-col{display:none}
+  #qq2.show-extra .qq2-extra-col{display:table-cell}
+</style>
+</head>
+<body>
+
+<div id="qq2">
+  <div class="qq2-header">
+    <div class="qq2-header-row">
+      <div class="qq2-title">QA/QC Weekly Sync</div>
+      <select class="qq2-week-select" id="qq2-week-select" aria-label="เลือกสัปดาห์"></select>
+      <button class="qq2-newweek" id="qq2-toggle-newweek">+ สัปดาห์ใหม่</button>
+    </div>
+    <div class="qq2-newweek-form" id="qq2-newweek-form">
+      <input type="text" id="qq2-newweek-input" placeholder="เช่น 7 - 11 Sep 2026">
+      <button id="qq2-newweek-confirm">สร้าง (ดึงงานค้างมาให้)</button>
+      <button class="qq2-cancel" id="qq2-newweek-cancel">ยกเลิก</button>
+    </div>
+  </div>
+
+  <div class="qq2-toolbar">
+    <div class="qq2-stats" id="qq2-stats"></div>
+    <div class="qq2-toolbar-btns">
+      <span class="qq2-sync offline" id="qq2-sync"><span class="dot"></span><span id="qq2-sync-text">กำลังเชื่อมต่อ...</span></span>
+      <button class="qq2-extra-toggle" id="qq2-extra-toggle">แสดงคอลัมน์เพิ่มเติม (PIC 2 / Priority / Due Date / แท็ก)</button>
+      <button class="qq2-extra-toggle" id="qq2-export-toggle">เตรียมข้อความส่งเมล</button>
+    </div>
+  </div>
+
+  <div class="qq2-export" id="qq2-export">
+    <label style="font-size:11.5px;color:var(--muted);display:block;margin-bottom:3px">ตัวอย่างข้อความ (แก้ในตารางด้านบนแล้วข้อความนี้จะอัปเดตอัตโนมัติ)</label>
+    <div class="qq2-export-preview" id="qq2-export-preview"></div>
+    <div class="qq2-export-actions">
+      <button class="qq2-copy-btn" id="qq2-copy-btn">คัดลอกข้อความ</button>
+      <span class="qq2-copy-msg" id="qq2-copy-msg">คัดลอกแล้ว</span>
+    </div>
+  </div>
+
+  <div class="qq2-body" id="qq2-body">
+    <div class="qq2-loading">กำลังโหลดข้อมูล...</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+(function(){
+  // ---- Supabase project config -------------------------------------------
+  // Fill these in from your project's Settings > API page, then this file
+  // is ready to deploy as-is (no build step). The anon/publishable key is
+  // safe to ship in client code; Row Level Security on the tables is what
+  // actually controls access (see database/schema.sql).
+  const SUPABASE_URL = 'YOUR_SUPABASE_PROJECT_URL';
+  const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+  // -------------------------------------------------------------------------
+
+  const CATEGORIES = [
+    {id:'cat1', name:'1. Conzol & Project Registration Progress'},
+    {id:'cat2', name:'2. Standard Document QA/QC (Center/Site)'},
+    {id:'cat3', name:'3. Dashboard / AI Tools'}
+  ];
+  const ROSTER = ['-','QAQC System Admin','QAQC Admin','Tanawit Anantaphrut','Pavinee Talthip',
+    'Thanikorn Wangdee','Pitchayapa Yaklai','Supatchaya Ternpongsai','Laddawan Suwankeeree',
+    'Teerapong Chotiwannapruke','Ekalak Wacharayingyong'];
+  const PRIORITIES = ['-','สูง','กลาง','ต่ำ'];
+
+  const EMAIL_TEMPLATE = {
+    greeting: 'เรียน ทีม ค่ะ',
+    cc: 'CC : พี่เอก พี่พงษ์',
+    signoff: 'Best Regards,\nPitchayapa Yaklai (Moji)\nTel : 092-5917878  Email : QAQCSystem01@scg.com'
+  };
+
+  const configured = SUPABASE_URL !== 'YOUR_SUPABASE_PROJECT_URL' && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY';
+  const db = configured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+  let weeks = [];
+  let currentWeekId = null;
+  let items = [];
+
+  const root = document.getElementById('qq2');
+  const weekSelect = document.getElementById('qq2-week-select');
+  const statsEl = document.getElementById('qq2-stats');
+  const bodyEl = document.getElementById('qq2-body');
+  const syncEl = document.getElementById('qq2-sync');
+  const syncTextEl = document.getElementById('qq2-sync-text');
+
+  function setSyncState(state, text){
+    syncEl.classList.toggle('offline', state !== 'online');
+    syncTextEl.textContent = text;
+  }
+
+  function rowToItem(r){
+    return {
+      id: r.id, weekId: r.week_id, cat: r.cat, no: r.no, action: r.action || '',
+      pic1: r.pic1 || '-', pic2: r.pic2 || '-', status: r.status || 'Next Step',
+      note: r.note || '', priority: r.priority || '-', due: r.due || '',
+      tagPic: !!r.tag_pic
+    };
+  }
+
+  async function fetchWeeks(){
+    const {data, error} = await db.from('weeks').select('*').order('created_at', {ascending:true});
+    if(error){ setSyncState('offline', 'เชื่อมต่อไม่ได้: ' + error.message); return []; }
+    return data;
+  }
+  async function fetchItems(weekId){
+    const {data, error} = await db.from('items').select('*').eq('week_id', weekId).order('no', {ascending:true});
+    if(error){ setSyncState('offline', 'เชื่อมต่อไม่ได้: ' + error.message); return []; }
+    return data.map(rowToItem);
+  }
+  async function refreshItems(){
+    items = await fetchItems(currentWeekId);
+    renderStats();
+    renderBody();
+    renderExportPreview();
+  }
+  async function refreshWeeksKeepingSelection(){
+    weeks = await fetchWeeks();
+    if(!weeks.find(w => w.id === currentWeekId) && weeks.length){
+      currentWeekId = weeks[weeks.length - 1].id;
+      renderWeekSelect();
+      await refreshItems();
+    } else {
+      renderWeekSelect();
+    }
+  }
+
+  async function updateItem(id, patch){
+    const {error} = await db.from('items').update(patch).eq('id', id);
+    if(error){ setSyncState('offline', 'บันทึกไม่สำเร็จ: ' + error.message); return; }
+    setSyncState('online', 'ซิงก์แล้ว');
+  }
+
+  function currentWeekLabel(){
+    const w = weeks.find(w => w.id === currentWeekId);
+    return w ? w.label : '';
+  }
+
+  function buildEmailText(){
+    const lines = [];
+    lines.push(EMAIL_TEMPLATE.greeting);
+    lines.push(EMAIL_TEMPLATE.cc);
+    lines.push(`ขอส่งสรุป MOM QA/QC Weekly Meeting และงานที่เป็น To Do สำหรับสัปดาห์หน้า ${currentWeekLabel()} มาดังนี้ค่ะ`);
+    CATEGORIES.forEach((cat, idx) => {
+      const catItems = items.filter(i => i.cat === cat.id && i.status !== 'Action Done');
+      lines.push('');
+      lines.push(`${idx+1}. ${cat.name.replace(/^\d+\.\s*/,'')}`);
+      if(catItems.length === 0){
+        lines.push('-  (ไม่มีงานค้างในหมวดนี้)');
+      } else {
+        catItems.forEach(it => {
+          let tag = '';
+          if(it.tagPic){
+            if(it.pic1 && it.pic1 !== '-') tag += ' @' + it.pic1;
+            if(it.pic2 && it.pic2 !== '-') tag += ' @' + it.pic2;
+          }
+          lines.push(`-  ${it.action}${tag}`);
+        });
+      }
+    });
+    lines.push('');
+    lines.push(EMAIL_TEMPLATE.signoff);
+    return lines.join('\n');
+  }
+
+  function renderExportPreview(){
+    const el = document.getElementById('qq2-export-preview');
+    if(el) el.textContent = buildEmailText();
+  }
+
+  function renderWeekSelect(){
+    weekSelect.innerHTML = '';
+    weeks.forEach(w => {
+      const opt = document.createElement('option');
+      opt.value = w.id;
+      opt.textContent = w.label;
+      if(w.id === currentWeekId) opt.selected = true;
+      weekSelect.appendChild(opt);
+    });
+  }
+
+  function renderStats(){
+    const total = items.length;
+    const done = items.filter(i => i.status === 'Action Done').length;
+    const next = total - done;
+    const pct = total ? Math.round((done/total)*100) : 0;
+    statsEl.innerHTML = `<b>${total}</b> งานทั้งหมด &nbsp;·&nbsp; <span class="sd">${done} เสร็จแล้ว</span> &nbsp;·&nbsp; <span class="sn">${next} ยังไม่เสร็จ</span> &nbsp;·&nbsp; ${pct}% เสร็จ`;
+  }
+
+  function nextNoForCat(catId){
+    const nos = items.filter(i => i.cat === catId).map(i => i.no);
+    return nos.length ? Math.max(...nos) + 1 : 1;
+  }
+
+  function isEditingInBody(){
+    return bodyEl.contains(document.activeElement) && document.activeElement !== bodyEl;
+  }
+
+  function renderBody(){
+    if(isEditingInBody()) return;
+    bodyEl.innerHTML = '';
+    CATEGORIES.forEach(cat => {
+      const catItems = items.filter(i => i.cat === cat.id);
+
+      const wrap = document.createElement('div');
+      wrap.className = 'qq2-cat';
+
+      const title = document.createElement('div');
+      title.className = 'qq2-cat-title';
+      title.textContent = cat.name;
+      wrap.appendChild(title);
+
+      if(catItems.length === 0){
+        const empty = document.createElement('div');
+        empty.className = 'qq2-empty';
+        empty.textContent = 'ไม่มีงานในหมวดนี้';
+        wrap.appendChild(empty);
+      } else {
+        const table = document.createElement('table');
+        table.className = 'qq2-table';
+        table.innerHTML = `<thead><tr>
+          <th style="width:34px">No.</th>
+          <th>Action Item</th>
+          <th style="width:140px">PIC</th>
+          <th class="qq2-extra-col" style="width:140px">PIC 2</th>
+          <th style="width:104px">Status</th>
+          <th style="width:180px">Note</th>
+          <th class="qq2-extra-col" style="width:74px">Priority</th>
+          <th class="qq2-extra-col" style="width:126px">Due Date</th>
+          <th class="qq2-extra-col" style="width:50px">แท็ก</th>
+          <th style="width:26px"></th>
+        </tr></thead>`;
+        const tbody = document.createElement('tbody');
+        catItems.forEach(item => tbody.appendChild(renderRow(item)));
+        table.appendChild(tbody);
+        wrap.appendChild(table);
+      }
+
+      const addBtn = document.createElement('button');
+      addBtn.className = 'qq2-addrow';
+      addBtn.textContent = '+ เพิ่มงาน';
+      addBtn.onclick = () => addItem(cat.id);
+      wrap.appendChild(addBtn);
+
+      bodyEl.appendChild(wrap);
+    });
+  }
+
+  function renderRow(item){
+    const tr = document.createElement('tr');
+    tr.className = item.status === 'Action Done' ? 'qq2-row-done' : 'qq2-row-next';
+
+    const tdNo = document.createElement('td');
+    tdNo.className = 'qq2-no';
+    tdNo.textContent = item.no;
+    tr.appendChild(tdNo);
+
+    const tdAction = document.createElement('td');
+    const ta = document.createElement('textarea');
+    ta.className = 'qq2-cell-input';
+    ta.value = item.action;
+    ta.rows = 1;
+    ta.addEventListener('input', () => { ta.style.height='auto'; ta.style.height=(ta.scrollHeight)+'px'; });
+    ta.addEventListener('blur', () => { item.action = ta.value; updateItem(item.id, {action: item.action}).then(() => {renderExportPreview();}); });
+    tdAction.appendChild(ta);
+    tr.appendChild(tdAction);
+    setTimeout(() => { ta.style.height='auto'; ta.style.height=(ta.scrollHeight)+'px'; }, 0);
+
+    tr.appendChild(picCell(item, 'pic1', false));
+    tr.appendChild(picCell(item, 'pic2', true));
+
+    const tdStatus = document.createElement('td');
+    tdStatus.className = 'qq2-status-cell';
+    const statusBtn = document.createElement('button');
+    statusBtn.className = 'qq2-status-btn';
+    statusBtn.textContent = item.status === 'Action Done' ? 'Action Done' : 'Next Step';
+    statusBtn.onclick = async () => {
+      item.status = item.status === 'Action Done' ? 'Next Step' : 'Action Done';
+      await updateItem(item.id, {status: item.status});
+      renderStats();
+      renderBody();
+      renderExportPreview();
+    };
+    tdStatus.appendChild(statusBtn);
+    tr.appendChild(tdStatus);
+
+    const tdNote = document.createElement('td');
+    const noteInput = document.createElement('input');
+    noteInput.type = 'text';
+    noteInput.className = 'qq2-cell-input note';
+    noteInput.placeholder = 'หมายเหตุ';
+    noteInput.value = item.note || '';
+    noteInput.addEventListener('blur', () => { item.note = noteInput.value; updateItem(item.id, {note: item.note}); });
+    tdNote.appendChild(noteInput);
+    tr.appendChild(tdNote);
+
+    const tdPriority = document.createElement('td');
+    tdPriority.className = 'qq2-extra-col';
+    const prioSel = document.createElement('select');
+    prioSel.className = 'qq2-cell-input';
+    PRIORITIES.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p; opt.textContent = p;
+      if((item.priority||'-') === p) opt.selected = true;
+      prioSel.appendChild(opt);
+    });
+    prioSel.onchange = () => { item.priority = prioSel.value; updateItem(item.id, {priority: item.priority}); };
+    tdPriority.appendChild(prioSel);
+    tr.appendChild(tdPriority);
+
+    const tdDue = document.createElement('td');
+    tdDue.className = 'qq2-extra-col';
+    const dueInput = document.createElement('input');
+    dueInput.type = 'date';
+    dueInput.className = 'qq2-cell-input';
+    dueInput.value = item.due || '';
+    dueInput.addEventListener('change', () => { item.due = dueInput.value || null; updateItem(item.id, {due: item.due}); });
+    tdDue.appendChild(dueInput);
+    tr.appendChild(tdDue);
+
+    const tdTag = document.createElement('td');
+    tdTag.className = 'qq2-extra-col';
+    const tagBtn = document.createElement('button');
+    tagBtn.className = 'qq2-tagbtn' + (item.tagPic ? ' on' : '');
+    tagBtn.textContent = '@';
+    tagBtn.title = 'แท็กชื่อ PIC ในข้อความส่งเมล';
+    tagBtn.onclick = async () => {
+      item.tagPic = !item.tagPic;
+      await updateItem(item.id, {tag_pic: item.tagPic});
+      renderBody();
+      renderExportPreview();
+    };
+    tdTag.appendChild(tagBtn);
+    tr.appendChild(tdTag);
+
+    const tdDel = document.createElement('td');
+    const delBtn = document.createElement('button');
+    delBtn.className = 'qq2-del';
+    delBtn.innerHTML = '&times;';
+    delBtn.title = 'ลบงานนี้';
+    delBtn.onclick = async () => {
+      if(confirm('ลบงานนี้ใช่ไหม?')){
+        const {error} = await db.from('items').delete().eq('id', item.id);
+        if(error){ setSyncState('offline', 'ลบไม่สำเร็จ: ' + error.message); return; }
+        items = items.filter(i => i.id !== item.id);
+        renderStats();
+        renderBody();
+        renderExportPreview();
+      }
+    };
+    tdDel.appendChild(delBtn);
+    tr.appendChild(tdDel);
+
+    return tr;
+  }
+
+  function picCell(item, field, extra){
+    const td = document.createElement('td');
+    if(extra) td.className = 'qq2-extra-col';
+    const sel = document.createElement('select');
+    sel.className = 'qq2-cell-input';
+    ROSTER.forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name; opt.textContent = name;
+      if(item[field] === name) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.onchange = () => { item[field] = sel.value; updateItem(item.id, {[field]: sel.value}); };
+    td.appendChild(sel);
+    return td;
+  }
+
+  async function addItem(catId){
+    const item = {
+      id: crypto.randomUUID(),
+      week_id: currentWeekId,
+      no: nextNoForCat(catId),
+      cat: catId, action: '', pic1: '-', pic2: '-',
+      status: 'Next Step', note: '', priority: '-', due: null, tag_pic: false
+    };
+    const {error} = await db.from('items').insert(item);
+    if(error){ setSyncState('offline', 'เพิ่มงานไม่สำเร็จ: ' + error.message); return; }
+    items.push(rowToItem(item));
+    renderStats();
+    renderBody();
+    renderExportPreview();
+  }
+
+  async function selectWeek(weekId){
+    currentWeekId = weekId;
+    renderWeekSelect();
+    bodyEl.innerHTML = '<div class="qq2-loading">กำลังโหลดข้อมูล...</div>';
+    await refreshItems();
+  }
+
+  async function createNewWeek(label){
+    const id = crypto.randomUUID();
+    const carried = items
+      .filter(i => i.status !== 'Action Done')
+      .map(i => ({
+        id: crypto.randomUUID(), week_id: id, cat: i.cat, no: i.no, action: i.action,
+        pic1: i.pic1, pic2: i.pic2, status: i.status, note: i.note,
+        priority: i.priority, due: i.due || null, tag_pic: i.tagPic
+      }));
+    const {error: weekErr} = await db.from('weeks').insert({id, label});
+    if(weekErr){ setSyncState('offline', 'สร้างสัปดาห์ไม่สำเร็จ: ' + weekErr.message); return; }
+    if(carried.length){
+      const {error: itemsErr} = await db.from('items').insert(carried);
+      if(itemsErr){ setSyncState('offline', 'ดึงงานค้างไม่สำเร็จ: ' + itemsErr.message); }
+    }
+    weeks = await fetchWeeks();
+    await selectWeek(id);
+  }
+
+  document.getElementById('qq2-toggle-newweek').onclick = () => {
+    document.getElementById('qq2-newweek-form').classList.toggle('open');
+    document.getElementById('qq2-newweek-input').focus();
+  };
+  document.getElementById('qq2-newweek-cancel').onclick = () => {
+    document.getElementById('qq2-newweek-form').classList.remove('open');
+  };
+  document.getElementById('qq2-newweek-confirm').onclick = async () => {
+    const input = document.getElementById('qq2-newweek-input');
+    const label = input.value.trim();
+    if(!label){ input.style.borderColor = '#B23A3A'; return; }
+    input.style.borderColor = '';
+    document.getElementById('qq2-newweek-form').classList.remove('open');
+    input.value = '';
+    await createNewWeek(label);
+  };
+  document.getElementById('qq2-extra-toggle').onclick = () => {
+    root.classList.toggle('show-extra');
+  };
+
+  document.getElementById('qq2-export-toggle').onclick = () => {
+    document.getElementById('qq2-export').classList.toggle('open');
+    renderExportPreview();
+  };
+
+  weekSelect.onchange = () => selectWeek(weekSelect.value);
+
+  document.getElementById('qq2-copy-btn').onclick = async () => {
+    const text = buildEmailText();
+    let copied = false;
+    try{
+      await navigator.clipboard.writeText(text);
+      copied = true;
+    }catch(e){
+      const el = document.getElementById('qq2-export-preview');
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      try{ copied = document.execCommand('copy'); }catch(e2){ copied = false; }
+    }
+    const msg = document.getElementById('qq2-copy-msg');
+    msg.textContent = copied ? 'คัดลอกแล้ว' : 'คัดลอกไม่สำเร็จ ลองเลือกข้อความแล้วกด Ctrl+C เอง';
+    msg.classList.add('show');
+    setTimeout(() => msg.classList.remove('show'), 2500);
+  };
+
+  function subscribeRealtime(){
+    db.channel('qq2-live')
+      .on('postgres_changes', {event:'*', schema:'public', table:'items'}, payload => {
+        const weekId = (payload.new && payload.new.week_id) || (payload.old && payload.old.week_id);
+        if(weekId === currentWeekId) refreshItems();
+      })
+      .on('postgres_changes', {event:'*', schema:'public', table:'weeks'}, () => {
+        refreshWeeksKeepingSelection();
+      })
+      .subscribe(status => {
+        if(status === 'SUBSCRIBED') setSyncState('online', 'ซิงก์แล้ว');
+      });
+  }
+
+  (async function init(){
+    if(!configured){
+      bodyEl.innerHTML = '<div class="qq2-empty">ยังไม่ได้ตั้งค่า Supabase — ใส่ SUPABASE_URL และ SUPABASE_ANON_KEY ในไฟล์นี้ก่อนใช้งาน</div>';
+      setSyncState('offline', 'ยังไม่ได้ตั้งค่า');
+      return;
+    }
+    weeks = await fetchWeeks();
+    const startId = weeks.length ? weeks[weeks.length-1].id : null;
+    if(startId){
+      currentWeekId = startId;
+      renderWeekSelect();
+      await refreshItems();
+      subscribeRealtime();
+    } else {
+      bodyEl.innerHTML = '<div class="qq2-empty">ยังไม่มีข้อมูลสัปดาห์</div>';
+    }
+  })();
+})();
+</script>
+</body>
+</html>
