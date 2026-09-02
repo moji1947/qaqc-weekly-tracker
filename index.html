@@ -34,6 +34,9 @@
   .qq2-newweek{background:transparent;border:1px dashed #7E97A3;color:#D7E2E8;font-size:12.5px;
     padding:5px 11px;border-radius:4px;white-space:nowrap}
   .qq2-newweek:hover{border-color:#fff;color:#fff}
+  .qq2-db-link{display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid #7E97A3;color:#D7E2E8;font-size:12.5px;padding:5px 11px;border-radius:4px;white-space:nowrap;text-decoration:none}
+  .qq2-db-link:hover{border-color:#fff;color:#fff;background:rgba(255,255,255,0.08)}
+  .qq2-db-link svg{flex-shrink:0;opacity:0.9}
   .qq2-newweek-form{display:none;gap:8px;margin-top:9px}
   .qq2-newweek-form.open{display:flex}
   .qq2-newweek-form input{flex:1;max-width:260px;background:#fff;border:1px solid var(--line);
@@ -113,16 +116,69 @@
   .qq2-loading{padding:36px;text-align:center;color:var(--muted);font-size:13px}
   .qq2-extra-col{display:none}
   #qq2.show-extra .qq2-extra-col{display:table-cell}
+
+  /* Auth — Operate-mode */
+  #qq2-auth{max-width:420px;margin:56px auto;font-family:Calibri,'Segoe UI',Arial,sans-serif;padding:0 14px}
+  .qq2-auth-card{background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .qq2-auth-head{background:var(--header);color:#fff;padding:18px 22px}
+  .qq2-auth-title{font-size:17px;font-weight:700}
+  .qq2-auth-sub{font-size:12.5px;color:#D7E2E8;margin-top:4px;line-height:1.4}
+  .qq2-auth-body{padding:20px 22px}
+  .qq2-auth-label{font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:6px;display:block}
+  .qq2-auth-input{width:100%;border:1px solid var(--line);border-radius:4px;padding:8px 10px;font-size:13.5px;background:#fff;transition:border-color 150ms ease,box-shadow 150ms ease}
+  .qq2-auth-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(28,110,140,0.15)}
+  .qq2-auth-field{margin-bottom:14px}
+  .qq2-auth-error{display:none;font-size:12.5px;color:#B23A3A;background:#FDECEC;border:1px solid #F5C6C6;border-radius:4px;padding:8px 10px;margin-bottom:14px;line-height:1.4}
+  .qq2-auth-error.show{display:block}
+  .qq2-auth-btn{width:100%;background:var(--accent);color:#fff;border:none;padding:9px 14px;border-radius:4px;font-size:13.5px;font-weight:700;transition:opacity 150ms ease}
+  .qq2-auth-btn:hover{opacity:0.9}
+  .qq2-auth-btn:disabled{opacity:0.55;cursor:wait}
+  .qq2-auth-hint{font-size:11.5px;color:var(--muted);margin-top:12px;text-align:center;line-height:1.4}
+  .qq2-userbox{display:none;align-items:center;gap:10px}
+  .qq2-userbox.show{display:flex}
+  .qq2-user-email{font-size:12.5px;color:#D7E2E8;max-width:190px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .qq2-logout{background:transparent;border:1px solid #7E97A3;color:#D7E2E8;font-size:12.5px;padding:5px 11px;border-radius:4px;white-space:nowrap}
+  .qq2-logout:hover{border-color:#fff;color:#fff;background:rgba(255,255,255,0.08)}
+  #qq2.qq2-hidden{display:none}
 </style>
 </head>
 <body>
 
-<div id="qq2">
+<div id="qq2-auth" style="display:none">
+  <div class="qq2-auth-card">
+    <div class="qq2-auth-head">
+      <div class="qq2-auth-title">เข้าสู่ระบบ QA/QC Tracker</div>
+      <div class="qq2-auth-sub">เฉพาะอีเมลที่ได้รับอนุญาตเท่านั้น</div>
+    </div>
+    <div class="qq2-auth-body">
+      <div class="qq2-auth-error" id="qq2-auth-error"></div>
+      <form id="qq2-auth-form" onsubmit="return false">
+        <div class="qq2-auth-field">
+          <label class="qq2-auth-label" for="qq2-auth-email">อีเมล (@scg.com)</label>
+          <input class="qq2-auth-input" id="qq2-auth-email" type="email" placeholder="อีเมล (@scg.com)" autocomplete="email" required>
+        </div>
+        <button class="qq2-auth-btn" id="qq2-auth-submit" type="submit">เข้าสู่ระบบ</button>
+      </form>
+      <div class="qq2-auth-hint">กรอกอีเมลที่ได้รับอนุญาตเพื่อเข้าใช้งาน</div>
+    </div>
+  </div>
+</div>
+
+<div id="qq2" class="qq2-hidden">
   <div class="qq2-header">
     <div class="qq2-header-row">
       <div class="qq2-title">QA/QC Weekly Sync</div>
       <select class="qq2-week-select" id="qq2-week-select" aria-label="เลือกสัปดาห์"></select>
       <button class="qq2-newweek" id="qq2-toggle-newweek">+ สัปดาห์ใหม่</button>
+      <a class="qq2-db-link" href="https://supabase.com/dashboard/project/grtrpbnccqbtpaoovmoa/editor" target="_blank" rel="noopener noreferrer" title="เปิด Supabase Table Editor ในแท็บใหม่">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+        ฐานข้อมูล
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+      </a>
+      <div class="qq2-userbox" id="qq2-userbox">
+        <span class="qq2-user-email" id="qq2-user-email" title=""></span>
+        <button class="qq2-logout" id="qq2-logout">ออกจากระบบ</button>
+      </div>
     </div>
     <div class="qq2-newweek-form" id="qq2-newweek-form">
       <input type="text" id="qq2-newweek-input" placeholder="เช่น 7 - 11 Sep 2026">
@@ -162,8 +218,8 @@
   // is ready to deploy as-is (no build step). The anon/publishable key is
   // safe to ship in client code; Row Level Security on the tables is what
   // actually controls access (see database/schema.sql).
-  const SUPABASE_URL = 'YOUR_SUPABASE_PROJECT_URL';
-  const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+  const SUPABASE_URL = 'https://grtrpbnccqbtpaoovmoa.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_7dJcpcsVd9PJ5GgVhlKbvQ_rrCzwWsq';
   // -------------------------------------------------------------------------
 
   const CATEGORIES = [
@@ -185,9 +241,22 @@
   const configured = SUPABASE_URL !== 'YOUR_SUPABASE_PROJECT_URL' && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY';
   const db = configured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
+  const WHITELIST = [
+    'qaqcsystem01@scg.com',
+    'pavineet@scg.com',
+    'tanawita@scg.com',
+    'supatcte@scg.com',
+    'qaqcsystem02@scg.com',
+    'laddasu@scg.com',
+    'qaqcadmin@scg.com',
+    'ekalakw@scg.com',
+    'teerapoc@scg.com'
+  ];
+
   let weeks = [];
   let currentWeekId = null;
   let items = [];
+  let realtimeChannel = null;
 
   const root = document.getElementById('qq2');
   const weekSelect = document.getElementById('qq2-week-select');
@@ -195,6 +264,49 @@
   const bodyEl = document.getElementById('qq2-body');
   const syncEl = document.getElementById('qq2-sync');
   const syncTextEl = document.getElementById('qq2-sync-text');
+
+  // Auth DOM — email only (no password, no OTP)
+  const LS_KEY = 'qq2_email';
+  const authWrap = document.getElementById('qq2-auth');
+  const authForm = document.getElementById('qq2-auth-form');
+  const authEmailInput = document.getElementById('qq2-auth-email');
+  const authSubmitBtn = document.getElementById('qq2-auth-submit');
+  const authErrorEl = document.getElementById('qq2-auth-error');
+  const userBox = document.getElementById('qq2-userbox');
+  const userEmailEl = document.getElementById('qq2-user-email');
+  const logoutBtn = document.getElementById('qq2-logout');
+
+  function normalizeEmail(e){ return (e||'').trim().toLowerCase(); }
+  function isWhitelisted(email){ return WHITELIST.includes(normalizeEmail(email)); }
+  function showAuthError(msg){ authErrorEl.textContent = msg; authErrorEl.classList.add('show'); }
+  function clearAuthError(){ authErrorEl.textContent = ''; authErrorEl.classList.remove('show'); }
+  function setAuthLoading(loading){
+    authSubmitBtn.disabled = loading;
+    authSubmitBtn.textContent = loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ';
+  }
+  function clearSyncChannel(){
+    if(realtimeChannel){
+      try{ db.removeChannel(realtimeChannel); }catch(_e){}
+      realtimeChannel = null;
+    }
+  }
+  function showAuth(){
+    authWrap.style.display = 'block';
+    root.classList.add('qq2-hidden');
+    userBox.classList.remove('show');
+    clearSyncChannel();
+    setSyncState('offline', 'ยังไม่ได้เข้าสู่ระบบ');
+  }
+  function showApp(user){
+    authWrap.style.display = 'none';
+    root.classList.remove('qq2-hidden');
+    userBox.classList.add('show');
+    const email = (user && user.email) ? user.email : (localStorage.getItem(LS_KEY) || '');
+    if(email){
+      userEmailEl.textContent = email;
+      userEmailEl.title = email;
+    }
+  }
 
   function setSyncState(state, text){
     syncEl.classList.toggle('offline', state !== 'online');
@@ -305,7 +417,13 @@
   }
 
   function isEditingInBody(){
-    return bodyEl.contains(document.activeElement) && document.activeElement !== bodyEl;
+    const el = document.activeElement;
+    if(!bodyEl.contains(el) || el === bodyEl) return false;
+    // Only free-text fields need this guard: their value commits to `item` on
+    // blur, so a re-render mid-keystroke would redraw with the stale value
+    // and swallow what's being typed. Buttons/selects/date commit instantly
+    // on click/change, so they must always re-render to show the result.
+    return el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && el.type === 'text');
   }
 
   function renderBody(){
@@ -524,9 +642,38 @@
     await selectWeek(id);
   }
 
+  const WEEK_LABEL_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  function formatWeekLabel(monday){
+    const friday = new Date(monday);
+    friday.setDate(friday.getDate() + 4);
+    const sameMonth = monday.getMonth() === friday.getMonth();
+    const startPart = sameMonth ? `${monday.getDate()}` : `${monday.getDate()} ${WEEK_LABEL_MONTHS[monday.getMonth()]}`;
+    return `${startPart} - ${friday.getDate()} ${WEEK_LABEL_MONTHS[friday.getMonth()]} ${friday.getFullYear()}`;
+  }
+
+  function nextWeekStart(){
+    const monday = new Date();
+    monday.setHours(0, 0, 0, 0);
+    const day = monday.getDay();
+    monday.setDate(monday.getDate() + (1 - day + 7) % 7);
+    return monday;
+  }
+
+  function suggestedWeekLabel(){
+    return formatWeekLabel(nextWeekStart());
+  }
+
   document.getElementById('qq2-toggle-newweek').onclick = () => {
-    document.getElementById('qq2-newweek-form').classList.toggle('open');
-    document.getElementById('qq2-newweek-input').focus();
+    const form = document.getElementById('qq2-newweek-form');
+    const opening = !form.classList.contains('open');
+    form.classList.toggle('open');
+    const input = document.getElementById('qq2-newweek-input');
+    if(opening){
+      if(!input.value) input.value = suggestedWeekLabel();
+      input.focus();
+      input.select();
+    }
   };
   document.getElementById('qq2-newweek-cancel').onclick = () => {
     document.getElementById('qq2-newweek-form').classList.remove('open');
@@ -572,8 +719,23 @@
     setTimeout(() => msg.classList.remove('show'), 2500);
   };
 
+  async function loadAppData(){
+    weeks = await fetchWeeks();
+    const startId = weeks.length ? weeks[weeks.length-1].id : null;
+    if(startId){
+      currentWeekId = startId;
+      renderWeekSelect();
+      await refreshItems();
+      subscribeRealtime();
+    } else {
+      bodyEl.innerHTML = '<div class="qq2-empty">ยังไม่มีข้อมูลสัปดาห์</div>';
+      setSyncState('online', 'ซิงก์แล้ว — ยังไม่มีข้อมูลสัปดาห์');
+    }
+  }
+
   function subscribeRealtime(){
-    db.channel('qq2-live')
+    clearSyncChannel();
+    realtimeChannel = db.channel('qq2-live')
       .on('postgres_changes', {event:'*', schema:'public', table:'items'}, payload => {
         const weekId = (payload.new && payload.new.week_id) || (payload.old && payload.old.week_id);
         if(weekId === currentWeekId) refreshItems();
@@ -586,21 +748,86 @@
       });
   }
 
+  // ---- Auth handlers — email only (no password, no OTP) -------------------------
+  if(authForm){
+    authForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearAuthError();
+      const email = authEmailInput.value.trim();
+      if(!email){
+        showAuthError('กรุณากรอกอีเมล');
+        return;
+      }
+      if(!isWhitelisted(email)){
+        showAuthError('อีเมลนี้ไม่ได้รับสิทธิ์เข้าใช้งานระบบ QA/QC Tracker');
+        return;
+      }
+      setAuthLoading(true);
+      // Simulate short check then store email locally and enter app
+      await new Promise(r => setTimeout(r, 280));
+      const normalized = normalizeEmail(email);
+      localStorage.setItem(LS_KEY, normalized);
+      // Keep original casing for display
+      showApp({email: email.trim()});
+      clearAuthError();
+      setAuthLoading(false);
+      await loadAppData();
+    });
+  }
+  if(logoutBtn){
+    logoutBtn.addEventListener('click', async () => {
+      localStorage.removeItem(LS_KEY);
+      // Also sign out Supabase session if any (best effort)
+      try{ if(db && db.auth) await db.auth.signOut(); }catch(_e){}
+      weeks = [];
+      currentWeekId = null;
+      items = [];
+      bodyEl.innerHTML = '<div class="qq2-loading">กำลังโหลดข้อมูล...</div>';
+      statsEl.innerHTML = '';
+      authEmailInput.value = '';
+      clearAuthError();
+      showAuth();
+    });
+  }
+
   (async function init(){
     if(!configured){
+      authWrap.style.display = 'none';
+      root.classList.remove('qq2-hidden');
       bodyEl.innerHTML = '<div class="qq2-empty">ยังไม่ได้ตั้งค่า Supabase — ใส่ SUPABASE_URL และ SUPABASE_ANON_KEY ในไฟล์นี้ก่อนใช้งาน</div>';
       setSyncState('offline', 'ยังไม่ได้ตั้งค่า');
       return;
     }
-    weeks = await fetchWeeks();
-    const startId = weeks.length ? weeks[weeks.length-1].id : null;
-    if(startId){
-      currentWeekId = startId;
-      renderWeekSelect();
-      await refreshItems();
-      subscribeRealtime();
+
+    // Email-only gate via localStorage (no password / no OTP)
+    const saved = localStorage.getItem(LS_KEY);
+    if(saved && isWhitelisted(saved)){
+      // Restore email input for visibility
+      authEmailInput.value = saved;
+      showApp({email: saved});
+      await loadAppData();
     } else {
-      bodyEl.innerHTML = '<div class="qq2-empty">ยังไม่มีข้อมูลสัปดาห์</div>';
+      if(saved && !isWhitelisted(saved)){
+        localStorage.removeItem(LS_KEY);
+        showAuth();
+        showAuthError('อีเมลนี้ไม่ได้รับสิทธิ์เข้าใช้งานระบบ QA/QC Tracker');
+      } else {
+        showAuth();
+      }
+    }
+
+    // Keep Supabase auth state clean: sign out any stray session since we use email-only gate
+    try{ if(db && db.auth) await db.auth.signOut(); }catch(_e){}
+
+    // Also listen to Supabase auth changes to enforce whitelist if someone signs in via other means
+    if(db && db.auth && db.auth.onAuthStateChange){
+      db.auth.onAuthStateChange(async (event, session) => {
+        const user = session && session.user;
+        if(user && !isWhitelisted(user.email)){
+          try{ await db.auth.signOut(); }catch(_e){}
+          // Do not disrupt email-only session — just ensure no authenticated bypass
+        }
+      });
     }
   })();
 })();

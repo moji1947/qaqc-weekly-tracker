@@ -1,7 +1,9 @@
 -- QA/QC Weekly Meeting Tracker
 -- Run this once in the Supabase SQL Editor of your new project.
--- Open access (no login): matches the original screen-share workflow.
--- Anyone with the project's anon key can read/write these two tables.
+-- Email-whitelist gate (no password / no OTP): whitelist enforced in frontend
+-- `index.html` via localStorage; RLS is open (anon can read/write) to allow
+-- email-only access without Supabase Auth session. Keep RLS enabled for
+-- Realtime + future hardening.
 
 create table if not exists public.weeks (
   id text primary key,
@@ -30,6 +32,26 @@ create index if not exists items_week_id_idx on public.items (week_id);
 alter table public.weeks enable row level security;
 alter table public.items enable row level security;
 
+drop policy if exists "public read weeks" on public.weeks;
+drop policy if exists "public write weeks" on public.weeks;
+drop policy if exists "public update weeks" on public.weeks;
+drop policy if exists "public delete weeks" on public.weeks;
+
+drop policy if exists "authenticated read weeks" on public.weeks;
+drop policy if exists "authenticated write weeks" on public.weeks;
+drop policy if exists "authenticated update weeks" on public.weeks;
+drop policy if exists "authenticated delete weeks" on public.weeks;
+
+drop policy if exists "public read items" on public.items;
+drop policy if exists "public write items" on public.items;
+drop policy if exists "public update items" on public.items;
+drop policy if exists "public delete items" on public.items;
+
+drop policy if exists "authenticated read items" on public.items;
+drop policy if exists "authenticated write items" on public.items;
+drop policy if exists "authenticated update items" on public.items;
+drop policy if exists "authenticated delete items" on public.items;
+
 create policy "public read weeks" on public.weeks for select using (true);
 create policy "public write weeks" on public.weeks for insert with check (true);
 create policy "public update weeks" on public.weeks for update using (true);
@@ -41,8 +63,15 @@ create policy "public update items" on public.items for update using (true);
 create policy "public delete items" on public.items for delete using (true);
 
 -- Enable Realtime so every open browser tab sees edits from teammates live.
-alter publication supabase_realtime add table public.weeks;
-alter publication supabase_realtime add table public.items;
+do $$
+begin
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'weeks') then
+    alter publication supabase_realtime add table public.weeks;
+  end if;
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'items') then
+    alter publication supabase_realtime add table public.items;
+  end if;
+end $$;
 
 -- Seed data matching the two weeks already in qaqc_meeting_tracker_v4.html.
 insert into public.weeks (id, label, created_at) values
