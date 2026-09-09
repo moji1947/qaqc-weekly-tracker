@@ -42,7 +42,7 @@ It is used **live during weekly team meetings while screen-sharing**. A single t
 - `Ekalak Wacharayingyong`
 
 ### Priorities
-- `-`, `สูง` (High), `กลาง` (Medium), `ต่ำ` (Low)
+- `-`, `High`, `Medium`, `Low`
 
 ### Core Workflows
 1. **Single-Typist Editing**: Click cell -> edit value -> blur event triggers Supabase update (`updateItem`).
@@ -51,11 +51,16 @@ It is used **live during weekly team meetings while screen-sharing**. A single t
    - Week switcher is a `<select class="qq2-week-select">` dropdown.
    - Clicking `+ สัปดาห์ใหม่` opens an inline form to name a new week.
    - When created, **all items with status `Next Step` (not `Action Done`) from the latest week are automatically copied into the new week**.
-4. **Collapsible Extra Columns**:
-   - Columns for `PIC 2`, `Priority`, `Due Date`, and `@tag` toggle are hidden by default and revealed via the toggle button `แสดงคอลัมน์เพิ่มเติม`.
-5. **Email MOM Export Generator**:
+4. **Priority & Focus System**:
+   - `Priority` is displayed as a primary column in the main table with color-coded badges (`High` red, `Medium` amber, `Low` blue).
+   - Items with `Priority = High` that are not done (`Next Step`) get a red visual focus border indicator to help the team focus during screen-shares.
+   - The toolbar stats summarize active high-priority tasks (e.g. `🔥 X ต้อง Focus`).
+5. **Collapsible Extra Columns**:
+   - Columns for `PIC 2`, `Due Date`, and `@tag` toggle are hidden by default and revealed via the toggle button `แสดงคอลัมน์เพิ่มเติม`.
+6. **Email MOM Export Generator**:
    - Generates formatted plain text for email distribution.
    - Includes greeting, CC line, intro sentence naming current week, numbered categories with `-` bullet points for **Next Step items only**, and sign-off.
+   - Items with priority include `[Priority: สูง]` tag.
    - Items with the `@tag` button enabled will include `@PIC1` / `@PIC2` in the export text.
    - Email template settings (greeting, CC, signoff) are hardcoded in `EMAIL_TEMPLATE` in JS.
 
