@@ -241,8 +241,9 @@
   const PRIORITIES = ['-','High','Medium','Low'];
 
   const EMAIL_TEMPLATE = {
+    to: 'To: Pavinee Talthip <pavineet@scg.com>; Tanawit Anantaphrut <tanawita@scg.com>; Supatchaya Temsongsai <supatcte@scg.com>; Thanikorn Wangdee <QAQCSystem02@scg.com>; Laddawan Suwankeeree <laddasu@scg.com>; QAQC Admin <QAQCAdmin@scg.com>',
+    cc: 'CC: Ekalak Wacharayingyong <ekalakw@scg.com>; Teerapong Chotiwannapruke <teerapoc@scg.com>',
     greeting: 'เรียน ทีม ค่ะ',
-    cc: 'CC : พี่เอก พี่พงษ์',
     signoff: 'Best Regards,\nPitchayapa Yaklai (Moji)\nTel : 092-5917878  Email : QAQCSystem01@scg.com'
   };
 
@@ -378,8 +379,10 @@
 
   function buildEmailText(){
     const lines = [];
+    if(EMAIL_TEMPLATE.to) lines.push(EMAIL_TEMPLATE.to);
+    if(EMAIL_TEMPLATE.cc) lines.push(EMAIL_TEMPLATE.cc);
+    lines.push('');
     lines.push(EMAIL_TEMPLATE.greeting);
-    lines.push(EMAIL_TEMPLATE.cc);
     lines.push(`ขอส่งสรุป MOM QA/QC Weekly Meeting และงานที่เป็น To Do สำหรับสัปดาห์หน้า ${currentWeekLabel()} มาดังนี้ค่ะ`);
     CATEGORIES.forEach((cat, idx) => {
       const catItems = items.filter(i => i.cat === cat.id && i.status !== 'Action Done');
