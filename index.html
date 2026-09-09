@@ -687,16 +687,41 @@
     return `${startPart} - ${friday.getDate()} ${WEEK_LABEL_MONTHS[friday.getMonth()]} ${friday.getFullYear()}`;
   }
 
-  function nextWeekStart(){
-    const monday = new Date();
-    monday.setHours(0, 0, 0, 0);
-    const day = monday.getDay();
-    monday.setDate(monday.getDate() + (1 - day + 7) % 7);
-    return monday;
+  function parseEndDateFromLabel(label){
+    if(!label) return null;
+    // Matches patterns like "24 - 28 Aug 2026", "31 Aug - 4 Sep 2026", "7 - 11 Sep 2026"
+    const m = label.match(/-\s*(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})/);
+    if(m){
+      const day = parseInt(m[1], 10);
+      const monthIdx = WEEK_LABEL_MONTHS.findIndex(mon => mon.toLowerCase() === m[2].toLowerCase());
+      const year = parseInt(m[3], 10);
+      if(monthIdx !== -1 && !isNaN(day) && !isNaN(year)){
+        return new Date(year, monthIdx, day);
+      }
+    }
+    return null;
   }
 
   function suggestedWeekLabel(){
-    return formatWeekLabel(nextWeekStart());
+    // Try to get next Monday after the latest existing week
+    if(weeks && weeks.length){
+      const lastWeek = weeks[weeks.length - 1];
+      const endDate = parseEndDateFromLabel(lastWeek.label);
+      if(endDate){
+        // The previous week ended on Friday, so next week starts on Monday (+3 days)
+        const nextMon = new Date(endDate);
+        const dayOfWeek = nextMon.getDay(); // 5 for Friday
+        const daysToAdd = dayOfWeek === 5 ? 3 : (1 - dayOfWeek + 7) % 7 || 7;
+        nextMon.setDate(nextMon.getDate() + daysToAdd);
+        return formatWeekLabel(nextMon);
+      }
+    }
+    // Fallback: calculate next Monday from today
+    const now = new Date();
+    now.setHours(0,0,0,0);
+    const day = now.getDay();
+    now.setDate(now.getDate() + (1 - day + 7) % 7);
+    return formatWeekLabel(now);
   }
 
   document.getElementById('qq2-toggle-newweek').onclick = () => {
@@ -705,7 +730,7 @@
     form.classList.toggle('open');
     const input = document.getElementById('qq2-newweek-input');
     if(opening){
-      if(!input.value) input.value = suggestedWeekLabel();
+      input.value = suggestedWeekLabel();
       input.focus();
       input.select();
     }
