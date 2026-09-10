@@ -28,7 +28,7 @@ It is used **live during weekly team meetings while screen-sharing**. A single t
 2. `2. Standard Document QA/QC (Center/Site)` (id: `cat2`)
 3. `3. Dashboard / AI Tools` (id: `cat3`)
 
-### Fixed PIC Roster (Dropdown options)
+### Fixed PIC Roster (Searchable Combobox)
 - `-` (Unassigned)
 - `QAQC System Admin`
 - `QAQC Admin`
@@ -40,6 +40,7 @@ It is used **live during weekly team meetings while screen-sharing**. A single t
 - `Laddawan Suwankeeree`
 - `Teerapong Chotiwannapruke`
 - `Ekalak Wacharayingyong`
+*Searchable Combobox*: Users can type name prefixes/keywords (e.g. `pit` -> filters `Pitchayapa Yaklai`) to quickly autocomplete and select PICs.
 
 ### Priorities
 - `-`, `High`, `Medium`, `Low`
@@ -47,16 +48,21 @@ It is used **live during weekly team meetings while screen-sharing**. A single t
 ### Core Workflows
 1. **Single-Typist Editing**: Click cell -> edit value -> blur event triggers Supabase update (`updateItem`).
 2. **Dual Status Visibility**: Both `Action Done` (green-tinted row) and `Next Step` (amber-tinted row) are visible simultaneously. Clicking the status button toggles between the two.
-3. **Week Management & Auto Carry-Forward**:
+3. **Week Management, Auto Carry-Forward & Re-sync**:
    - Week switcher is a `<select class="qq2-week-select">` dropdown.
    - Clicking `+ สัปดาห์ใหม่` opens an inline form to name a new week.
-   - When created, **all items with status `Next Step` (not `Action Done`) from the latest week are automatically copied into the new week**.
+   - When created, **all items with status `Next Step` (not `Action Done`) across all prior weeks (that are not yet in the target week) are automatically carried forward**.
+   - **Bidirectional Re-sync & Auto-Cleanup**:
+     - If an item in an older week is changed from `Next Step` -> `Action Done`, it is automatically deleted from later weeks (including the latest week).
+     - If an item in an older week is changed from `Action Done` -> `Next Step`, clicking `🔄 ดึงงานค้างเพิ่ม` on the current/latest week will pull it back immediately without duplicates.
+     - Clicking `🔄 ดึงงานค้างเพิ่ม` performs a full 2-way sync: it pulls newly pending items and removes items completed in earlier weeks.
 4. **Priority & Focus System**:
    - `Priority` is displayed as a primary column in the main table with color-coded badges (`High` red, `Medium` amber, `Low` blue).
    - Items with `Priority = High` that are not done (`Next Step`) get a red visual focus border indicator to help the team focus during screen-shares.
    - The toolbar stats summarize active high-priority tasks (e.g. `🔥 X ต้อง Focus`).
 5. **Collapsible Extra Columns**:
-   - Columns for `PIC 2`, `Due Date`, and `@tag` toggle are hidden by default and revealed via the toggle button `แสดงคอลัมน์เพิ่มเติม`.
+   - `PIC` and `PIC 2` are both primary columns and always visible in the main table without clicking any buttons.
+   - Columns for `Due Date` and `@tag` toggle are hidden by default and revealed via the toggle button `แสดงคอลัมน์เพิ่มเติม (Due Date / แท็ก)`.
 6. **Email MOM Export Generator**:
    - Generates formatted plain text for email distribution.
    - Includes greeting, CC line, intro sentence naming current week, numbered categories with `-` bullet points for **Next Step items only**, and sign-off.

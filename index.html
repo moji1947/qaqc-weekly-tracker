@@ -59,6 +59,9 @@
     padding:5px 10px;border-radius:4px}
   .qq2-extra-toggle:hover{background:#EEF4F6}
   .qq2-toolbar-btns{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .qq2-resync-msg{font-size:12px;color:var(--done-text);font-weight:600;opacity:0;transition:opacity .2s;white-space:nowrap}
+  .qq2-resync-msg.show{opacity:1}
+  .qq2-resync-msg.error{color:#B23A3A}
 
   tr.qq2-row-focus td:first-child{border-left:4px solid #DC2626;font-weight:700;color:#DC2626}
   .qq2-prio-select{font-size:12px;font-weight:700;border-radius:4px;padding:5px 6px;text-align:center;cursor:pointer}
@@ -102,6 +105,28 @@
   .qq2-cell-input:focus{outline:2px solid var(--accent);outline-offset:-2px;background:#fff}
   textarea.qq2-cell-input{resize:none;font-family:inherit;line-height:1.4;min-height:34px}
   select.qq2-cell-input{padding:7px 6px}
+  .qq2-pic-cell{padding:4px 6px !important;vertical-align:top}
+  .qq2-pic-stack{display:flex;flex-direction:column;gap:3px}
+  .qq2-pic-row{display:flex;align-items:center;gap:3px;position:relative}
+  .qq2-pic-wrap{position:relative;flex:1;min-width:0}
+  .qq2-pic-input{cursor:text;text-overflow:ellipsis;padding-right:16px}
+  .qq2-pic-arrow{position:absolute;right:4px;top:50%;transform:translateY(-50%);
+    pointer-events:none;color:var(--muted);font-size:9px}
+  .qq2-pic-suggest{position:absolute;top:100%;left:0;min-width:210px;background:#fff;
+    border:1px solid var(--accent);border-radius:4px;box-shadow:0 6px 16px rgba(0,0,0,0.18);
+    max-height:220px;overflow-y:auto;z-index:999;margin:2px 0 0 0;padding:4px 0;list-style:none}
+  .qq2-pic-opt{padding:7px 10px;cursor:pointer;font-size:12.5px;color:var(--ink);font-weight:600;
+    transition:background-color 100ms ease;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .qq2-pic-opt:hover,.qq2-pic-opt.active{background:#EEF4F6;color:var(--header)}
+  .qq2-pic-empty{padding:8px 10px;font-size:12px;color:var(--muted);font-style:italic;text-align:center}
+  .qq2-pic-remove{border:none;background:transparent;color:var(--muted);cursor:pointer;
+    font-size:14px;padding:0 3px;line-height:1;border-radius:3px;flex-shrink:0}
+  .qq2-pic-remove:hover{color:#B23A3A;background:#FDECEC}
+  .qq2-pic-addbtn{border:1px dashed #B8C7CE;background:transparent;color:var(--accent);
+    font-size:11px;padding:2px 6px;border-radius:3px;cursor:pointer;text-align:left;
+    align-self:flex-start;margin-top:1px;transition:all 150ms ease}
+  .qq2-pic-addbtn:hover{border-color:var(--accent);background:#EEF4F6}
+  tr:focus-within{position:relative;z-index:40}
   input.qq2-cell-input.note{color:var(--muted);font-style:italic}
   input.qq2-cell-input.note:focus{font-style:normal;color:var(--ink)}
 
@@ -199,7 +224,9 @@
     <div class="qq2-stats" id="qq2-stats"></div>
     <div class="qq2-toolbar-btns">
       <span class="qq2-sync offline" id="qq2-sync"><span class="dot"></span><span id="qq2-sync-text">กำลังเชื่อมต่อ...</span></span>
-      <button class="qq2-extra-toggle" id="qq2-extra-toggle">แสดงคอลัมน์เพิ่มเติม (PIC 2 / Due Date / แท็ก)</button>
+      <button class="qq2-extra-toggle" id="qq2-resync-btn" title="ดึงงานที่ยังไม่เสร็จจากสัปดาห์ก่อนๆ เข้ามาในสัปดาห์นี้">🔄 ดึงงานค้างเพิ่ม</button>
+      <span class="qq2-resync-msg" id="qq2-resync-msg"></span>
+      <button class="qq2-extra-toggle" id="qq2-extra-toggle">แสดงคอลัมน์เพิ่มเติม (Due Date / แท็ก)</button>
       <button class="qq2-extra-toggle" id="qq2-export-toggle">เตรียมข้อความส่งเมล</button>
     </div>
   </div>
@@ -238,6 +265,12 @@
   const ROSTER = ['-','QAQC System Admin','QAQC Admin','Tanawit Anantaphrut','Pavinee Talthip',
     'Thanikorn Wangdee','Pitchayapa Yaklai','Supatchaya Ternpongsai','Laddawan Suwankeeree',
     'Teerapong Chotiwannapruke','Ekalak Wacharayingyong'];
+
+  function matchRoster(query){
+    const q = (query || '').trim().toLowerCase();
+    if(!q) return ROSTER;
+    return ROSTER.filter(name => name.toLowerCase().includes(q));
+  }
   const PRIORITIES = ['-','High','Medium','Low'];
 
   const EMAIL_TEMPLATE = {
@@ -474,8 +507,7 @@
         table.innerHTML = `<thead><tr>
           <th style="width:34px">No.</th>
           <th>Action Item</th>
-          <th style="width:130px">PIC</th>
-          <th class="qq2-extra-col" style="width:130px">PIC 2</th>
+          <th style="width:165px">PIC</th>
           <th style="width:82px">Priority</th>
           <th style="width:104px">Status</th>
           <th style="width:170px">Note</th>
@@ -528,8 +560,7 @@
     tr.appendChild(tdAction);
     setTimeout(() => { ta.style.height='auto'; ta.style.height=(ta.scrollHeight)+'px'; }, 0);
 
-    tr.appendChild(picCell(item, 'pic1', false));
-    tr.appendChild(picCell(item, 'pic2', true));
+    tr.appendChild(renderPicCell(item));
 
     const tdPriority = document.createElement('td');
     const prioSel = document.createElement('select');
@@ -563,6 +594,16 @@
       renderStats();
       renderBody();
       renderExportPreview();
+
+      const currentIdx = weeks.findIndex(w => w.id === item.weekId);
+      if(currentIdx !== -1 && currentIdx < weeks.length - 1){
+        const latestWeek = weeks[weeks.length - 1];
+        if(item.status === 'Action Done'){
+          await removeFinishedTaskFromLaterWeeks(item);
+        } else {
+          await syncWeekWithPrior(latestWeek.id, true);
+        }
+      }
     };
     tdStatus.appendChild(statusBtn);
     tr.appendChild(tdStatus);
@@ -623,19 +664,196 @@
     return tr;
   }
 
-  function picCell(item, field, extra){
-    const td = document.createElement('td');
-    if(extra) td.className = 'qq2-extra-col';
-    const sel = document.createElement('select');
-    sel.className = 'qq2-cell-input';
-    ROSTER.forEach(name => {
-      const opt = document.createElement('option');
-      opt.value = name; opt.textContent = name;
-      if(item[field] === name) opt.selected = true;
-      sel.appendChild(opt);
+  function createPicInput(item, field, onUpdate){
+    const wrap = document.createElement('div');
+    wrap.className = 'qq2-pic-wrap';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'qq2-cell-input qq2-pic-input';
+    input.value = item[field] || '-';
+    input.title = item[field] || '-';
+    input.placeholder = field === 'pic1' ? 'เลือกผู้รับผิดชอบ...' : 'คนที่ 2...';
+    input.autocomplete = 'off';
+
+    const arrow = document.createElement('span');
+    arrow.className = 'qq2-pic-arrow';
+    arrow.textContent = '▾';
+
+    const list = document.createElement('ul');
+    list.className = 'qq2-pic-suggest';
+    list.style.display = 'none';
+
+    let activeIdx = -1;
+
+    function renderSuggestions(matches){
+      list.innerHTML = '';
+      if(!matches.length){
+        const emptyLi = document.createElement('li');
+        emptyLi.className = 'qq2-pic-empty';
+        emptyLi.textContent = 'ไม่พบชื่อที่ค้นหา';
+        list.appendChild(emptyLi);
+        list.style.display = 'block';
+        return;
+      }
+      matches.forEach((name, idx) => {
+        const li = document.createElement('li');
+        li.className = 'qq2-pic-opt' + (idx === activeIdx ? ' active' : '');
+        li.textContent = name;
+        li.onmousedown = (e) => {
+          e.preventDefault();
+          choose(name);
+        };
+        list.appendChild(li);
+      });
+      list.style.display = 'block';
+    }
+
+    function choose(name){
+      item[field] = name;
+      input.value = name;
+      input.title = name;
+      list.style.display = 'none';
+      updateItem(item.id, {[field]: name}).then(() => {
+        renderExportPreview();
+        if(onUpdate) onUpdate();
+      });
+    }
+
+    input.addEventListener('focus', () => {
+      input.select();
+      activeIdx = -1;
+      renderSuggestions(ROSTER);
     });
-    sel.onchange = () => { item[field] = sel.value; updateItem(item.id, {[field]: sel.value}); };
-    td.appendChild(sel);
+
+    input.addEventListener('input', () => {
+      activeIdx = -1;
+      const matches = matchRoster(input.value);
+      renderSuggestions(matches);
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if(list.style.display === 'none'){
+        if(e.key === 'ArrowDown'){
+          renderSuggestions(ROSTER);
+          return;
+        }
+        return;
+      }
+      const opts = list.querySelectorAll('.qq2-pic-opt');
+      if(!opts.length) return;
+
+      if(e.key === 'ArrowDown'){
+        e.preventDefault();
+        activeIdx = (activeIdx + 1) % opts.length;
+        opts.forEach((el, idx) => el.classList.toggle('active', idx === activeIdx));
+        opts[activeIdx].scrollIntoView({block:'nearest'});
+      } else if(e.key === 'ArrowUp'){
+        e.preventDefault();
+        activeIdx = (activeIdx - 1 + opts.length) % opts.length;
+        opts.forEach((el, idx) => el.classList.toggle('active', idx === activeIdx));
+        opts[activeIdx].scrollIntoView({block:'nearest'});
+      } else if(e.key === 'Enter'){
+        e.preventDefault();
+        if(activeIdx >= 0 && opts[activeIdx]){
+          opts[activeIdx].dispatchEvent(new MouseEvent('mousedown'));
+        } else {
+          const matches = matchRoster(input.value);
+          if(matches.length){
+            choose(matches[0]);
+          } else {
+            input.value = item[field] || '-';
+            list.style.display = 'none';
+          }
+        }
+        input.blur();
+      } else if(e.key === 'Escape'){
+        list.style.display = 'none';
+      }
+    });
+
+    input.addEventListener('blur', () => {
+      list.style.display = 'none';
+      const typed = input.value.trim();
+      if(!typed || typed === '-'){
+        choose('-');
+        return;
+      }
+      const exact = ROSTER.find(name => name.toLowerCase() === typed.toLowerCase());
+      if(exact){
+        choose(exact);
+      } else {
+        const matches = matchRoster(typed);
+        if(matches.length === 1){
+          choose(matches[0]);
+        } else {
+          input.value = item[field] || '-';
+        }
+      }
+    });
+
+    wrap.appendChild(input);
+    wrap.appendChild(arrow);
+    wrap.appendChild(list);
+    return wrap;
+  }
+
+  function renderPicCell(item){
+    const td = document.createElement('td');
+    td.className = 'qq2-pic-cell';
+
+    const stack = document.createElement('div');
+    stack.className = 'qq2-pic-stack';
+
+    function rebuild(){
+      stack.innerHTML = '';
+
+      // PIC 1 Row
+      const row1 = document.createElement('div');
+      row1.className = 'qq2-pic-row';
+      row1.appendChild(createPicInput(item, 'pic1'));
+      stack.appendChild(row1);
+
+      // PIC 2 Row
+      const hasPic2 = item.pic2 && item.pic2 !== '-';
+      if(hasPic2){
+        const row2 = document.createElement('div');
+        row2.className = 'qq2-pic-row';
+        row2.appendChild(createPicInput(item, 'pic2'));
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'qq2-pic-remove';
+        removeBtn.textContent = '×';
+        removeBtn.title = 'ลบคนที่ 2';
+        removeBtn.onclick = async (e) => {
+          e.stopPropagation();
+          item.pic2 = '-';
+          await updateItem(item.id, {pic2: '-'});
+          renderExportPreview();
+          rebuild();
+        };
+        row2.appendChild(removeBtn);
+        stack.appendChild(row2);
+      } else {
+        const addBtn = document.createElement('button');
+        addBtn.className = 'qq2-pic-addbtn';
+        addBtn.textContent = '+ คนที่ 2';
+        addBtn.title = 'เพิ่มผู้รับผิดชอบคนที่ 2';
+        addBtn.onclick = (e) => {
+          e.stopPropagation();
+          item.pic2 = '';
+          rebuild();
+          const inputs = stack.querySelectorAll('.qq2-pic-input');
+          if(inputs && inputs[1]){
+            inputs[1].focus();
+          }
+        };
+        stack.appendChild(addBtn);
+      }
+    }
+
+    rebuild();
+    td.appendChild(stack);
     return td;
   }
 
@@ -659,25 +877,237 @@
     currentWeekId = weekId;
     renderWeekSelect();
     bodyEl.innerHTML = '<div class="qq2-loading">กำลังโหลดข้อมูล...</div>';
+    await syncWeekWithPrior(weekId, true);
     await refreshItems();
+  }
+
+  async function removeFinishedTaskFromLaterWeeks(item){
+    if(!item || !item.action || !item.action.trim()) return;
+    const currentIdx = weeks.findIndex(w => w.id === item.weekId);
+    if(currentIdx === -1 || currentIdx >= weeks.length - 1) return;
+
+    const laterWeeks = weeks.slice(currentIdx + 1);
+    const laterWeekIds = laterWeeks.map(w => w.id);
+    const targetAction = item.action.trim().toLowerCase();
+
+    const { data: laterItems, error } = await db
+      .from('items')
+      .select('id, cat, action, status')
+      .in('week_id', laterWeekIds)
+      .eq('cat', item.cat);
+
+    if(error || !laterItems || !laterItems.length) return;
+
+    const toDeleteIds = laterItems
+      .filter(it => (it.action || '').trim().toLowerCase() === targetAction)
+      .map(it => it.id);
+
+    if(toDeleteIds.length){
+      await db.from('items').delete().in('id', toDeleteIds);
+    }
+  }
+
+  async function getPriorWeeksTaskStatus(targetWeekId){
+    const targetIdx = weeks.findIndex(w => w.id === targetWeekId);
+    if(targetIdx <= 0) return { pending: [], doneKeys: new Set() };
+
+    const priorWeeks = weeks.slice(0, targetIdx);
+    const priorWeekIds = priorWeeks.map(w => w.id);
+
+    const { data: rawItems, error } = await db
+      .from('items')
+      .select('*')
+      .in('week_id', priorWeekIds)
+      .order('no', {ascending: true});
+
+    if(error || !rawItems) return { pending: [], doneKeys: new Set() };
+
+    const weekIndexMap = new Map();
+    priorWeeks.forEach((w, idx) => weekIndexMap.set(w.id, idx));
+
+    rawItems.sort((a, b) => {
+      const wA = weekIndexMap.get(a.week_id) ?? 0;
+      const wB = weekIndexMap.get(b.week_id) ?? 0;
+      if(wA !== wB) return wA - wB;
+      return (a.no || 0) - (b.no || 0);
+    });
+
+    const latestTaskMap = new Map();
+    for(const r of rawItems){
+      const act = (r.action || '').trim();
+      if(!act) continue;
+      const key = `${r.cat}:::${act.toLowerCase()}`;
+      latestTaskMap.set(key, r);
+    }
+
+    const pending = [];
+    const doneKeys = new Set();
+    for(const [key, r] of latestTaskMap.entries()){
+      if(r.status !== 'Action Done'){
+        pending.push(r);
+      } else {
+        doneKeys.add(key);
+      }
+    }
+    return { pending, doneKeys };
+  }
+
+  function showResyncMsg(text, isError=false){
+    const msg = document.getElementById('qq2-resync-msg');
+    if(!msg) return;
+    msg.textContent = text;
+    msg.classList.toggle('error', !!isError);
+    msg.classList.add('show');
+    setTimeout(() => msg.classList.remove('show'), 3500);
+  }
+
+  async function syncWeekWithPrior(targetWeekId, isBackground=false){
+    if(!targetWeekId) return;
+    const targetIdx = weeks.findIndex(w => w.id === targetWeekId);
+    if(targetIdx <= 0) return;
+
+    const { pending: pendingItems, doneKeys } = await getPriorWeeksTaskStatus(targetWeekId);
+
+    const { data: currentDbItems, error: fetchErr } = await db
+      .from('items')
+      .select('*')
+      .eq('week_id', targetWeekId)
+      .order('no', {ascending: true});
+
+    if(fetchErr || !currentDbItems) return;
+
+    // 1. ตรวจหางานที่ต้องลบออก (เสร็จในวีคเก่าแล้ว ไม่ควรอยู่ในวีคนี้)
+    const toDelete = currentDbItems.filter(i => {
+      const key = `${i.cat}:::${(i.action || '').trim().toLowerCase()}`;
+      return doneKeys.has(key);
+    });
+
+    // 2. ตรวจหางานที่ต้องดึงเพิ่ม (ค้างในวีคเก่า แต่ในวีคนี้ยังไม่มี)
+    const existingKeys = new Set(
+      currentDbItems
+        .filter(i => i.action && i.action.trim())
+        .map(i => `${i.cat}:::${i.action.trim().toLowerCase()}`)
+    );
+
+    const toAdd = pendingItems.filter(i => {
+      const key = `${i.cat}:::${(i.action || '').trim().toLowerCase()}`;
+      return !existingKeys.has(key);
+    });
+
+    if(toDelete.length === 0 && toAdd.length === 0){
+      if(!isBackground){
+        showResyncMsg('ข้อมูลตรงกับสัปดาห์ก่อนหน้าแล้ว');
+      }
+      return;
+    }
+
+    let changed = false;
+
+    if(toDelete.length){
+      const {error: delErr} = await db.from('items').delete().in('id', toDelete.map(i => i.id));
+      if(!delErr) changed = true;
+    }
+
+    let insertedCount = 0;
+    if(toAdd.length){
+      const toInsert = [];
+      CATEGORIES.forEach(cat => {
+        const catToAdd = toAdd.filter(i => i.cat === cat.id);
+        const catExistingNos = currentDbItems.filter(i => i.cat === cat.id).map(i => i.no);
+        let no = catExistingNos.length ? Math.max(...catExistingNos) + 1 : 1;
+        catToAdd.forEach(i => {
+          toInsert.push({
+            id: crypto.randomUUID(),
+            week_id: targetWeekId,
+            cat: cat.id,
+            no: no++,
+            action: (i.action || '').trim(),
+            pic1: i.pic1 || '-',
+            pic2: i.pic2 || '-',
+            status: 'Next Step',
+            note: i.note || '',
+            priority: normalizePriority(i.priority),
+            due: i.due || null,
+            tag_pic: !!i.tag_pic
+          });
+        });
+      });
+
+      const {error: insErr} = await db.from('items').insert(toInsert);
+      if(!insErr){
+        changed = true;
+        insertedCount = toInsert.length;
+      }
+    }
+
+    if(changed){
+      if(targetWeekId === currentWeekId){
+        await refreshItems();
+      }
+      if(!isBackground){
+        if(insertedCount > 0 && toDelete.length > 0){
+          showResyncMsg(`ดึงงานค้างเพิ่ม ${insertedCount} รายการ และนำงานที่เสร็จออก ${toDelete.length} รายการ`);
+        } else if(insertedCount > 0){
+          showResyncMsg(`ดึงงานค้างเพิ่ม ${insertedCount} รายการแล้ว`);
+        } else if(toDelete.length > 0){
+          showResyncMsg(`นำงานที่เสร็จในสัปดาห์ก่อนหน้าออก ${toDelete.length} รายการแล้ว`);
+        }
+      }
+    }
+  }
+
+  async function resyncPendingItems(){
+    if(!currentWeekId) return;
+    const btn = document.getElementById('qq2-resync-btn');
+    if(!btn) return;
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '⏳ กำลังซิงก์...';
+
+    try {
+      await syncWeekWithPrior(currentWeekId, false);
+    } catch(err) {
+      showResyncMsg('เกิดข้อผิดพลาด: ' + (err.message || err), true);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
   }
 
   async function createNewWeek(label){
     const id = crypto.randomUUID();
-    const carried = items
-      .filter(i => i.status !== 'Action Done')
-      .map(i => ({
-        id: crypto.randomUUID(), week_id: id, cat: i.cat, no: i.no, action: i.action,
-        pic1: i.pic1, pic2: i.pic2, status: i.status, note: i.note,
-        priority: normalizePriority(i.priority), due: i.due || null, tag_pic: i.tagPic
-      }));
     const {error: weekErr} = await db.from('weeks').insert({id, label});
     if(weekErr){ setSyncState('offline', 'สร้างสัปดาห์ไม่สำเร็จ: ' + weekErr.message); return; }
-    if(carried.length){
-      const {error: itemsErr} = await db.from('items').insert(carried);
-      if(itemsErr){ setSyncState('offline', 'ดึงงานค้างไม่สำเร็จ: ' + itemsErr.message); }
-    }
+    
     weeks = await fetchWeeks();
+    const { pending: pendingItems } = await getPriorWeeksTaskStatus(id);
+    if(pendingItems.length){
+      const toInsert = [];
+      CATEGORIES.forEach(cat => {
+        const catPending = pendingItems.filter(i => i.cat === cat.id);
+        let no = 1;
+        catPending.forEach(i => {
+          toInsert.push({
+            id: crypto.randomUUID(),
+            week_id: id,
+            cat: cat.id,
+            no: no++,
+            action: (i.action || '').trim(),
+            pic1: i.pic1 || '-',
+            pic2: i.pic2 || '-',
+            status: 'Next Step',
+            note: i.note || '',
+            priority: normalizePriority(i.priority),
+            due: i.due || null,
+            tag_pic: !!i.tag_pic
+          });
+        });
+      });
+      if(toInsert.length){
+        const {error: itemsErr} = await db.from('items').insert(toInsert);
+        if(itemsErr){ setSyncState('offline', 'ดึงงานค้างไม่สำเร็จ: ' + itemsErr.message); }
+      }
+    }
     await selectWeek(id);
   }
 
@@ -754,6 +1184,8 @@
   document.getElementById('qq2-extra-toggle').onclick = () => {
     root.classList.toggle('show-extra');
   };
+  const resyncBtn = document.getElementById('qq2-resync-btn');
+  if(resyncBtn) resyncBtn.onclick = resyncPendingItems;
 
   document.getElementById('qq2-export-toggle').onclick = () => {
     document.getElementById('qq2-export').classList.toggle('open');
@@ -789,6 +1221,7 @@
     if(startId){
       currentWeekId = startId;
       renderWeekSelect();
+      await syncWeekWithPrior(startId, true);
       await refreshItems();
       subscribeRealtime();
     } else {
@@ -800,9 +1233,20 @@
   function subscribeRealtime(){
     clearSyncChannel();
     realtimeChannel = db.channel('qq2-live')
-      .on('postgres_changes', {event:'*', schema:'public', table:'items'}, payload => {
-        const weekId = (payload.new && payload.new.week_id) || (payload.old && payload.old.week_id);
-        if(weekId === currentWeekId) refreshItems();
+      .on('postgres_changes', {event:'*', schema:'public', table:'items'}, async payload => {
+        const newWeekId = payload.new && payload.new.week_id;
+        const oldWeekId = payload.old && payload.old.week_id;
+        const oldId = payload.old && payload.old.id;
+
+        const isCurrentWeek = newWeekId === currentWeekId || oldWeekId === currentWeekId || (oldId && items.some(i => i.id === oldId));
+
+        if(isCurrentWeek){
+          await refreshItems();
+        } else {
+          // หากมีการเปลี่ยนแปลงในสัปดาห์อื่น ให้ auto-sync สัปดาห์ปัจจุบันทันที
+          await syncWeekWithPrior(currentWeekId, true);
+          await refreshItems();
+        }
       })
       .on('postgres_changes', {event:'*', schema:'public', table:'weeks'}, () => {
         refreshWeeksKeepingSelection();
