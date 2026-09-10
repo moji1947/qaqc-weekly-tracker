@@ -671,14 +671,27 @@
     const input = document.createElement('input');
     input.type = 'text';
     input.className = 'qq2-cell-input qq2-pic-input';
-    input.value = item[field] || '-';
-    input.title = item[field] || '-';
+    const currentVal = item[field] || '-';
+    input.value = (currentVal && currentVal !== '-') ? currentVal : '';
+    input.title = currentVal;
     input.placeholder = field === 'pic1' ? 'เลือกผู้รับผิดชอบ...' : 'คนที่ 2...';
     input.autocomplete = 'off';
 
     const arrow = document.createElement('span');
     arrow.className = 'qq2-pic-arrow';
     arrow.textContent = '▾';
+    arrow.style.pointerEvents = 'auto';
+    arrow.style.cursor = 'pointer';
+    arrow.onmousedown = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if(list.style.display === 'block'){
+        list.style.display = 'none';
+      } else {
+        input.focus();
+        renderSuggestions(ROSTER);
+      }
+    };
 
     const list = document.createElement('ul');
     list.className = 'qq2-pic-suggest';
@@ -702,6 +715,7 @@
         li.textContent = name;
         li.onmousedown = (e) => {
           e.preventDefault();
+          e.stopPropagation();
           choose(name);
         };
         list.appendChild(li);
@@ -711,8 +725,8 @@
 
     function choose(name){
       item[field] = name;
-      input.value = name;
-      input.title = name;
+      input.value = (name && name !== '-') ? name : '';
+      input.title = name || '-';
       list.style.display = 'none';
       updateItem(item.id, {[field]: name}).then(() => {
         renderExportPreview();
@@ -762,7 +776,8 @@
           if(matches.length){
             choose(matches[0]);
           } else {
-            input.value = item[field] || '-';
+            const fallback = item[field] || '-';
+            input.value = (fallback && fallback !== '-') ? fallback : '';
             list.style.display = 'none';
           }
         }
@@ -773,7 +788,9 @@
     });
 
     input.addEventListener('blur', () => {
-      list.style.display = 'none';
+      setTimeout(() => {
+        list.style.display = 'none';
+      }, 150);
       const typed = input.value.trim();
       if(!typed || typed === '-'){
         choose('-');
@@ -787,7 +804,8 @@
         if(matches.length === 1){
           choose(matches[0]);
         } else {
-          input.value = item[field] || '-';
+          const fallback = item[field] || '-';
+          input.value = (fallback && fallback !== '-') ? fallback : '';
         }
       }
     });
@@ -804,6 +822,7 @@
 
     const stack = document.createElement('div');
     stack.className = 'qq2-pic-stack';
+    let isAddingPic2 = false;
 
     function rebuild(){
       stack.innerHTML = '';
@@ -811,15 +830,18 @@
       // PIC 1 Row
       const row1 = document.createElement('div');
       row1.className = 'qq2-pic-row';
-      row1.appendChild(createPicInput(item, 'pic1'));
+      row1.appendChild(createPicInput(item, 'pic1', () => rebuild()));
       stack.appendChild(row1);
 
       // PIC 2 Row
-      const hasPic2 = item.pic2 && item.pic2 !== '-';
+      const hasPic2 = (item.pic2 && item.pic2 !== '-') || isAddingPic2;
       if(hasPic2){
         const row2 = document.createElement('div');
         row2.className = 'qq2-pic-row';
-        row2.appendChild(createPicInput(item, 'pic2'));
+        row2.appendChild(createPicInput(item, 'pic2', () => {
+          isAddingPic2 = false;
+          rebuild();
+        }));
 
         const removeBtn = document.createElement('button');
         removeBtn.className = 'qq2-pic-remove';
@@ -827,6 +849,7 @@
         removeBtn.title = 'ลบคนที่ 2';
         removeBtn.onclick = async (e) => {
           e.stopPropagation();
+          isAddingPic2 = false;
           item.pic2 = '-';
           await updateItem(item.id, {pic2: '-'});
           renderExportPreview();
@@ -841,7 +864,7 @@
         addBtn.title = 'เพิ่มผู้รับผิดชอบคนที่ 2';
         addBtn.onclick = (e) => {
           e.stopPropagation();
-          item.pic2 = '';
+          isAddingPic2 = true;
           rebuild();
           const inputs = stack.querySelectorAll('.qq2-pic-input');
           if(inputs && inputs[1]){
