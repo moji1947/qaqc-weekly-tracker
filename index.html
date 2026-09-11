@@ -597,11 +597,8 @@
 
       const currentIdx = weeks.findIndex(w => w.id === item.weekId);
       if(currentIdx !== -1 && currentIdx < weeks.length - 1){
-        const latestWeek = weeks[weeks.length - 1];
         if(item.status === 'Action Done'){
           await removeFinishedTaskFromLaterWeeks(item);
-        } else {
-          await syncWeekWithPrior(latestWeek.id, true);
         }
       }
     };
@@ -652,6 +649,9 @@
       if(confirm('ลบงานนี้ใช่ไหม?')){
         const {error} = await db.from('items').delete().eq('id', item.id);
         if(error){ setSyncState('offline', 'ลบไม่สำเร็จ: ' + error.message); return; }
+        if(item.action){
+          addDismissedTask(item.weekId, item.action, item.cat);
+        }
         items = items.filter(i => i.id !== item.id);
         renderStats();
         renderBody();
@@ -900,7 +900,6 @@
     currentWeekId = weekId;
     renderWeekSelect();
     bodyEl.innerHTML = '<div class="qq2-loading">กำลังโหลดข้อมูล...</div>';
-    await syncWeekWithPrior(weekId, true);
     await refreshItems();
   }
 
@@ -975,6 +974,27 @@
     return { pending, doneKeys };
   }
 
+  function addDismissedTask(weekId, actionText, cat){
+    try {
+      const key = `qq2_dismissed_${weekId}`;
+      const list = JSON.parse(localStorage.getItem(key) || '[]');
+      const itemKey = `${cat}:::${(actionText || '').trim().toLowerCase()}`;
+      if(!list.includes(itemKey)){
+        list.push(itemKey);
+        localStorage.setItem(key, JSON.stringify(list));
+      }
+    } catch(e){}
+  }
+
+  function getDismissedTasks(weekId){
+    try {
+      const key = `qq2_dismissed_${weekId}`;
+      return new Set(JSON.parse(localStorage.getItem(key) || '[]'));
+    } catch(e){
+      return new Set();
+    }
+  }
+
   function showResyncMsg(text, isError=false){
     const msg = document.getElementById('qq2-resync-msg');
     if(!msg) return;
@@ -1005,16 +1025,28 @@
       return doneKeys.has(key);
     });
 
-    // 2. ตรวจหางานที่ต้องดึงเพิ่ม (ค้างในวีคเก่า แต่ในวีคนี้ยังไม่มี)
-    const existingKeys = new Set(
-      currentDbItems
-        .filter(i => i.action && i.action.trim())
-        .map(i => `${i.cat}:::${i.action.trim().toLowerCase()}`)
-    );
+    // 2. ตรวจหางานที่ต้องดึงเพิ่ม (ค้างในวีคเก่า และในวีคนี้ยังไม่มี/ไม่ได้ลบออก/ไม่ได้แก้ข้อความ)
+    const dismissedKeys = getDismissedTasks(targetWeekId);
 
     const toAdd = pendingItems.filter(i => {
-      const key = `${i.cat}:::${(i.action || '').trim().toLowerCase()}`;
-      return !existingKeys.has(key);
+      const priorAct = (i.action || '').trim().toLowerCase();
+      if(!priorAct) return false;
+      const key = `${i.cat}:::${priorAct}`;
+      if(dismissedKeys.has(key)) return false;
+
+      // เช็คว่าในวีคนี้มีงานนี้อยู่แล้วหรือไม่ (ป้องกันการดึงซ้ำเมื่องานถูกแก้ไขข้อความ)
+      const alreadyExists = currentDbItems.some(curr => {
+        if(curr.cat !== i.cat) return false;
+        const currAct = (curr.action || '').trim().toLowerCase();
+        if(!currAct) return false;
+        if(currAct === priorAct) return true;
+        // กรณีมีการแก้ไขข้อความหรือเติมคำท้าย/หน้า
+        if(currAct.startsWith(priorAct) || priorAct.startsWith(currAct)) return true;
+        if(priorAct.length > 20 && (currAct.includes(priorAct) || priorAct.includes(currAct))) return true;
+        return false;
+      });
+
+      return !alreadyExists;
     });
 
     if(toDelete.length === 0 && toAdd.length === 0){
@@ -1244,7 +1276,6 @@
     if(startId){
       currentWeekId = startId;
       renderWeekSelect();
-      await syncWeekWithPrior(startId, true);
       await refreshItems();
       subscribeRealtime();
     } else {
@@ -1264,10 +1295,6 @@
         const isCurrentWeek = newWeekId === currentWeekId || oldWeekId === currentWeekId || (oldId && items.some(i => i.id === oldId));
 
         if(isCurrentWeek){
-          await refreshItems();
-        } else {
-          // หากมีการเปลี่ยนแปลงในสัปดาห์อื่น ให้ auto-sync สัปดาห์ปัจจุบันทันที
-          await syncWeekWithPrior(currentWeekId, true);
           await refreshItems();
         }
       })

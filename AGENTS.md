@@ -56,6 +56,10 @@ It is used **live during weekly team meetings while screen-sharing**. A single t
      - If an item in an older week is changed from `Next Step` -> `Action Done`, it is automatically deleted from later weeks (including the latest week).
      - If an item in an older week is changed from `Action Done` -> `Next Step`, clicking `🔄 ดึงงานค้างเพิ่ม` on the current/latest week will pull it back immediately without duplicates.
      - Clicking `🔄 ดึงงานค้างเพิ่ม` performs a full 2-way sync: it pulls newly pending items and removes items completed in earlier weeks.
+     - **Independent Edit & Delete in Latest Week**:
+       - Editing a task's text in the current week does not create duplicate rows; fuzzy/prefix matching prevents older text from being re-pulled.
+       - Deleting a task (`×`) in the current week permanently deletes it for that week; dismissed tasks are remembered and never re-pulled.
+       - Background loading/switching weeks never injects unrequested rows automatically.
 4. **Priority & Focus System**:
    - `Priority` is displayed as a primary column in the main table with color-coded badges (`High` red, `Medium` amber, `Low` blue).
    - Items with `Priority = High` that are not done (`Next Step`) get a red visual focus border indicator to help the team focus during screen-shares.
