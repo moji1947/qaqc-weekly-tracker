@@ -427,10 +427,8 @@
       } else {
         catItems.forEach(it => {
           let tag = '';
-          if(it.tagPic){
-            if(it.pic1 && it.pic1 !== '-') tag += ' @' + it.pic1;
-            if(it.pic2 && it.pic2 !== '-') tag += ' @' + it.pic2;
-          }
+          if(it.pic1 && it.pic1 !== '-') tag += ' @' + it.pic1;
+          if(it.pic2 && it.pic2 !== '-') tag += ' @' + it.pic2;
           const prioTag = (it.priority && it.priority !== '-') ? ` [Priority: ${it.priority}]` : '';
           lines.push(`-  ${it.action}${prioTag}${tag}`);
         });

@@ -71,7 +71,7 @@ It is used **live during weekly team meetings while screen-sharing**. A single t
    - Generates formatted plain text for email distribution.
    - Includes greeting, CC line, intro sentence naming current week, numbered categories with `-` bullet points for **Next Step items only**, and sign-off.
    - Items with priority include `[Priority: สูง]` tag.
-   - Items with the `@tag` button enabled will include `@PIC1` / `@PIC2` in the export text.
+   - Items with assigned PICs automatically include `@PIC1` / `@PIC2` in the export text.
    - Email template settings (greeting, CC, signoff) are hardcoded in `EMAIL_TEMPLATE` in JS.
 
 ---
