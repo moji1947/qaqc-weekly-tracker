@@ -78,7 +78,8 @@
   .qq2-export{display:none;border-top:1px solid var(--line);background:#FAFBFB;padding:14px 18px}
   .qq2-export.open{display:block}
   .qq2-export-preview{width:100%;min-height:260px;border:1px solid var(--line);border-radius:4px;
-    padding:12px;font-size:13px;line-height:1.6;font-family:inherit;background:#fff;white-space:pre-wrap}
+    padding:14px 16px;font-size:13px;line-height:1.6;font-family:Calibri,'Segoe UI',Arial,sans-serif;background:#fff}
+  .qq2-export-preview a{color:#0078D4;text-decoration:underline;font-weight:600}
   .qq2-export-actions{display:flex;gap:8px;margin-top:10px;align-items:center}
   .qq2-copy-btn{background:var(--accent);border:none;color:#fff;padding:8px 16px;border-radius:4px;
     font-size:13px;font-weight:600}
@@ -266,6 +267,42 @@
     'Thanikorn Wangdee','Pitchayapa Yaklai','Supatchaya Ternpongsai','Laddawan Suwankeeree',
     'Teerapong Chotiwannapruke','Ekalak Wacharayingyong'];
 
+  const PIC_EMAILS = {
+    'Pavinee Talthip': 'pavineet@scg.com',
+    'Tanawit Anantaphrut': 'tanawita@scg.com',
+    'Supatchaya Ternpongsai': 'supatcte@scg.com',
+    'Supatchaya Temsongsai': 'supatcte@scg.com',
+    'Thanikorn Wangdee': 'QAQCSystem02@scg.com',
+    'Pitchayapa Yaklai': 'QAQCSystem01@scg.com',
+    'Laddawan Suwankeeree': 'laddasu@scg.com',
+    'QAQC Admin': 'QAQCAdmin@scg.com',
+    'QAQC System Admin': 'qaqcsystemadmin@scg.com',
+    'Ekalak Wacharayingyong': 'ekalakw@scg.com',
+    'Teerapong Chotiwannapruke': 'teerapoc@scg.com'
+  };
+
+  function escapeHtml(str){
+    if(!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function formatPicTag(name, isHtml = false){
+    if(!name || name === '-') return '';
+    const clean = name.trim();
+    const email = PIC_EMAILS[clean] || '';
+    if(isHtml){
+      if(email){
+        return ` <a href="mailto:${email}" style="color:#0078D4;text-decoration:underline;font-weight:600">@${escapeHtml(clean)}</a>`;
+      }
+      return ` <span style="color:#0078D4;font-weight:600">@${escapeHtml(clean)}</span>`;
+    }
+    return ` @${clean}`;
+  }
+
   function matchRoster(query){
     const q = (query || '').trim().toLowerCase();
     if(!q) return ROSTER;
@@ -426,11 +463,11 @@
         lines.push('-  (ไม่มีงานค้างในหมวดนี้)');
       } else {
         catItems.forEach(it => {
-          let tag = '';
-          if(it.pic1 && it.pic1 !== '-') tag += ' @' + it.pic1;
-          if(it.pic2 && it.pic2 !== '-') tag += ' @' + it.pic2;
+          let tags = '';
+          if(it.pic1 && it.pic1 !== '-') tags += formatPicTag(it.pic1, false);
+          if(it.pic2 && it.pic2 !== '-') tags += formatPicTag(it.pic2, false);
           const prioTag = (it.priority && it.priority !== '-') ? ` [Priority: ${it.priority}]` : '';
-          lines.push(`-  ${it.action}${prioTag}${tag}`);
+          lines.push(`-  ${it.action}${prioTag}${tags}`);
         });
       }
     });
@@ -439,9 +476,39 @@
     return lines.join('\n');
   }
 
+  function buildEmailHtml(){
+    const lines = [];
+    if(EMAIL_TEMPLATE.to) lines.push(`<div style="color:#555;font-size:12.5px;margin-bottom:2px">${escapeHtml(EMAIL_TEMPLATE.to)}</div>`);
+    if(EMAIL_TEMPLATE.cc) lines.push(`<div style="color:#555;font-size:12.5px;margin-bottom:8px">${escapeHtml(EMAIL_TEMPLATE.cc)}</div>`);
+    lines.push(`<div style="margin:10px 0 6px 0">${escapeHtml(EMAIL_TEMPLATE.greeting)}</div>`);
+    lines.push(`<div>ขอส่งสรุป MOM QA/QC Weekly Meeting และงานที่เป็น To Do สำหรับสัปดาห์หน้า <b>${escapeHtml(currentWeekLabel())}</b> มาดังนี้ค่ะ</div>`);
+
+    CATEGORIES.forEach((cat, idx) => {
+      const catItems = items.filter(i => i.cat === cat.id && i.status !== 'Action Done');
+      lines.push(`<div style="margin-top:14px;font-weight:bold;color:#1A3644">${idx+1}. ${escapeHtml(cat.name.replace(/^\d+\.\s*/,''))}</div>`);
+      if(catItems.length === 0){
+        lines.push('<div style="color:#888;padding-left:18px">-  (ไม่มีงานค้างในหมวดนี้)</div>');
+      } else {
+        lines.push('<ul style="margin:4px 0 6px 0;padding-left:22px;line-height:1.6">');
+        catItems.forEach(it => {
+          let tags = '';
+          if(it.pic1 && it.pic1 !== '-') tags += formatPicTag(it.pic1, true);
+          if(it.pic2 && it.pic2 !== '-') tags += formatPicTag(it.pic2, true);
+          const prioTag = (it.priority && it.priority !== '-') ? ` <span style="color:#B23A3A;font-weight:bold">[Priority: ${escapeHtml(it.priority)}]</span>` : '';
+          lines.push(`<li>${escapeHtml(it.action)}${prioTag}${tags}</li>`);
+        });
+        lines.push('</ul>');
+      }
+    });
+
+    const signoffHtml = escapeHtml(EMAIL_TEMPLATE.signoff).replace(/\n/g, '<br>');
+    lines.push(`<div style="margin-top:16px;color:#333;line-height:1.5">${signoffHtml}</div>`);
+    return lines.join('\n');
+  }
+
   function renderExportPreview(){
     const el = document.getElementById('qq2-export-preview');
-    if(el) el.textContent = buildEmailText();
+    if(el) el.innerHTML = buildEmailHtml();
   }
 
   function renderWeekSelect(){
@@ -1248,24 +1315,47 @@
   weekSelect.onchange = () => selectWeek(weekSelect.value);
 
   document.getElementById('qq2-copy-btn').onclick = async () => {
-    const text = buildEmailText();
+    const plainText = buildEmailText();
+    const htmlText = buildEmailHtml();
     let copied = false;
-    try{
-      await navigator.clipboard.writeText(text);
-      copied = true;
-    }catch(e){
-      const el = document.getElementById('qq2-export-preview');
-      const range = document.createRange();
-      range.selectNodeContents(el);
-      const sel = window.getSelection();
-      sel.removeAllRanges();
-      sel.addRange(range);
-      try{ copied = document.execCommand('copy'); }catch(e2){ copied = false; }
+    try {
+      if(navigator.clipboard && window.ClipboardItem){
+        const textBlob = new Blob([plainText], { type: 'text/plain' });
+        const htmlBlob = new Blob([htmlText], { type: 'text/html' });
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            'text/plain': textBlob,
+            'text/html': htmlBlob
+          })
+        ]);
+        copied = true;
+      } else {
+        await navigator.clipboard.writeText(plainText);
+        copied = true;
+      }
+    } catch(e){
+      try {
+        const el = document.getElementById('qq2-export-preview');
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        copied = document.execCommand('copy');
+        sel.removeAllRanges();
+      } catch(e2){
+        try {
+          await navigator.clipboard.writeText(plainText);
+          copied = true;
+        } catch(e3){
+          copied = false;
+        }
+      }
     }
     const msg = document.getElementById('qq2-copy-msg');
-    msg.textContent = copied ? 'คัดลอกแล้ว' : 'คัดลอกไม่สำเร็จ ลองเลือกข้อความแล้วกด Ctrl+C เอง';
+    msg.textContent = copied ? 'คัดลอกข้อความพร้อมลิงก์แท็กแล้ว (นำไปวางใน Outlook ได้เลย)' : 'คัดลอกไม่สำเร็จ ลองเลือกข้อความแล้วกด Ctrl+C';
     msg.classList.add('show');
-    setTimeout(() => msg.classList.remove('show'), 2500);
+    setTimeout(() => msg.classList.remove('show'), 2800);
   };
 
   async function loadAppData(){
