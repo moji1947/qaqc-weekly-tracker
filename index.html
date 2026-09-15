@@ -87,6 +87,26 @@
   .qq2-copy-msg{font-size:12.5px;color:var(--done-text);opacity:0;transition:opacity .2s}
   .qq2-copy-msg.show{opacity:1}
 
+  /* Filter bar */
+  .qq2-filterbar{background:#FAFBFB;border-bottom:1px solid var(--line);padding:8px 18px;
+    display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px}
+  .qq2-filter-group{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+  .qq2-filter-label{font-size:12px;font-weight:700;color:var(--muted);margin-right:2px}
+  .qq2-filter-pill{background:#fff;border:1px solid var(--line);color:var(--ink);padding:4px 11px;
+    border-radius:14px;font-size:12px;cursor:pointer;font-weight:600;transition:all 150ms ease;
+    display:inline-flex;align-items:center;gap:4px}
+  .qq2-filter-pill:hover{border-color:var(--accent);color:var(--accent);background:#EEF4F6}
+  .qq2-filter-pill.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  .qq2-filter-select{background:#fff;border:1px solid var(--line);padding:4px 8px;border-radius:4px;
+    font-size:12px;color:var(--ink);cursor:pointer;outline:none;transition:border-color 150ms ease}
+  .qq2-filter-select:focus{border-color:var(--accent)}
+  .qq2-filter-search{background:#fff;border:1px solid var(--line);padding:4px 9px;border-radius:4px;
+    font-size:12px;color:var(--ink);width:145px;transition:all 150ms ease}
+  .qq2-filter-search:focus{outline:none;border-color:var(--accent);width:185px}
+  .qq2-filter-clear{background:transparent;border:none;color:#B23A3A;font-size:11.5px;cursor:pointer;
+    font-weight:700;padding:3px 7px;border-radius:3px}
+  .qq2-filter-clear:hover{background:#FDECEC}
+
   .qq2-body{padding:14px 18px 20px}
   .qq2-cat{margin-top:22px}
   .qq2-cat:first-child{margin-top:0}
@@ -229,6 +249,29 @@
       <span class="qq2-resync-msg" id="qq2-resync-msg"></span>
       <button class="qq2-extra-toggle" id="qq2-extra-toggle">แสดงคอลัมน์เพิ่มเติม (Due Date / แท็ก)</button>
       <button class="qq2-extra-toggle" id="qq2-export-toggle">เตรียมข้อความส่งเมล</button>
+    </div>
+  </div>
+
+  <div class="qq2-filterbar" id="qq2-filterbar">
+    <div class="qq2-filter-group">
+      <span class="qq2-filter-label">ตัวกรอง:</span>
+      <button class="qq2-filter-pill active" id="qq2-filter-pill-all" type="button">ทั้งหมด</button>
+      <button class="qq2-filter-pill" id="qq2-filter-pill-my" type="button" title="แสดงเฉพาะงานที่ฉันรับผิดชอบ">👤 งานของฉัน</button>
+      <button class="qq2-filter-pill" id="qq2-filter-pill-high" type="button" title="แสดงเฉพาะงานที่สำคัญเร่งด่วน (High)">🔥 High เท่านั้น</button>
+      <button class="qq2-filter-pill" id="qq2-filter-pill-next" type="button" title="แสดงเฉพาะงานที่ยังไม่เสร็จ (Next Step)">⏳ ยังไม่เสร็จ</button>
+    </div>
+    <div class="qq2-filter-group">
+      <select class="qq2-filter-select" id="qq2-filter-pic" aria-label="กรองตามผู้รับผิดชอบ">
+        <option value="">-- ผู้รับผิดชอบ (ทั้งหมด) --</option>
+      </select>
+      <select class="qq2-filter-select" id="qq2-filter-priority" aria-label="กรองตาม Priority">
+        <option value="">-- Priority (ทั้งหมด) --</option>
+        <option value="High">🔥 High</option>
+        <option value="Medium">Medium</option>
+        <option value="Low">Low</option>
+      </select>
+      <input type="text" class="qq2-filter-search" id="qq2-filter-search" placeholder="🔍 ค้นหางาน...">
+      <button class="qq2-filter-clear" id="qq2-filter-clear" type="button" style="display:none">✕ ล้างตัวกรอง</button>
     </div>
   </div>
 
@@ -386,6 +429,7 @@
       userEmailEl.textContent = email;
       userEmailEl.title = email;
     }
+    updateFilterUI();
   }
 
   function setSyncState(state, text){
@@ -522,6 +566,137 @@
     });
   }
 
+  const EMAIL_TO_PIC = {
+    'pavineet@scg.com': 'Pavinee Talthip',
+    'tanawita@scg.com': 'Tanawit Anantaphrut',
+    'supatcte@scg.com': 'Supatchaya Ternpongsai',
+    'qaqcsystem02@scg.com': 'Thanikorn Wangdee',
+    'qaqcsystem01@scg.com': 'Pitchayapa Yaklai',
+    'laddasu@scg.com': 'Laddawan Suwankeeree',
+    'qaqcadmin@scg.com': 'QAQC Admin',
+    'qaqcsystemadmin@scg.com': 'QAQC System Admin',
+    'ekalakw@scg.com': 'Ekalak Wacharayingyong',
+    'teerapoc@scg.com': 'Teerapong Chotiwannapruke'
+  };
+
+  function getCurrentUserPic(){
+    const email = (localStorage.getItem(LS_KEY) || '').trim().toLowerCase();
+    return EMAIL_TO_PIC[email] || '';
+  }
+
+  let activeFilter = {
+    myTasksOnly: false,
+    priority: '',
+    pic: '',
+    status: '',
+    search: ''
+  };
+
+  function isFilterActive(){
+    return activeFilter.myTasksOnly ||
+           !!activeFilter.priority ||
+           !!activeFilter.pic ||
+           !!activeFilter.status ||
+           !!activeFilter.search;
+  }
+
+  function matchesFilter(item){
+    if(activeFilter.myTasksOnly){
+      const myPic = getCurrentUserPic();
+      if(myPic){
+        const isMy = item.pic1 === myPic || item.pic2 === myPic;
+        if(!isMy) return false;
+      } else {
+        return false;
+      }
+    }
+    if(activeFilter.priority){
+      if(normalizePriority(item.priority) !== activeFilter.priority) return false;
+    }
+    if(activeFilter.pic){
+      const hasPic = item.pic1 === activeFilter.pic || item.pic2 === activeFilter.pic;
+      if(!hasPic) return false;
+    }
+    if(activeFilter.status){
+      if(item.status !== activeFilter.status) return false;
+    }
+    if(activeFilter.search){
+      const q = activeFilter.search;
+      const text = `${item.action} ${item.note || ''} ${item.pic1} ${item.pic2}`.toLowerCase();
+      if(!text.includes(q)) return false;
+    }
+    return true;
+  }
+
+  function updateFilterUI(){
+    const hasFilter = isFilterActive();
+    const clearBtn = document.getElementById('qq2-filter-clear');
+    if(clearBtn) clearBtn.style.display = hasFilter ? 'inline-block' : 'none';
+
+    const pillAll = document.getElementById('qq2-filter-pill-all');
+    const pillMy = document.getElementById('qq2-filter-pill-my');
+    const pillHigh = document.getElementById('qq2-filter-pill-high');
+    const pillNext = document.getElementById('qq2-filter-pill-next');
+
+    if(pillAll) pillAll.classList.toggle('active', !hasFilter);
+    if(pillMy) pillMy.classList.toggle('active', !!activeFilter.myTasksOnly);
+    if(pillHigh) pillHigh.classList.toggle('active', activeFilter.priority === 'High');
+    if(pillNext) pillNext.classList.toggle('active', activeFilter.status === 'Next Step');
+
+    const picSelect = document.getElementById('qq2-filter-pic');
+    if(picSelect && picSelect.value !== activeFilter.pic) picSelect.value = activeFilter.pic;
+
+    const prioSelect = document.getElementById('qq2-filter-priority');
+    if(prioSelect && prioSelect.value !== activeFilter.priority) prioSelect.value = activeFilter.priority;
+
+    const searchInput = document.getElementById('qq2-filter-search');
+    if(searchInput && searchInput.value !== activeFilter.search) searchInput.value = activeFilter.search;
+
+    updateMyTaskPillLabel();
+  }
+
+  function clearAllFilters(){
+    activeFilter = {
+      myTasksOnly: false,
+      priority: '',
+      pic: '',
+      status: '',
+      search: ''
+    };
+    updateFilterUI();
+    renderBody();
+    renderStats();
+  }
+
+  function populatePicFilterOptions(){
+    const sel = document.getElementById('qq2-filter-pic');
+    if(!sel) return;
+    const currentVal = sel.value;
+    sel.innerHTML = '<option value="">-- ผู้รับผิดชอบ (ทั้งหมด) --</option>';
+    ROSTER.filter(r => r && r !== '-').forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      sel.appendChild(opt);
+    });
+    sel.value = currentVal;
+  }
+
+  function updateMyTaskPillLabel(){
+    const myPic = getCurrentUserPic();
+    const pillMy = document.getElementById('qq2-filter-pill-my');
+    if(pillMy){
+      if(myPic){
+        const shortName = myPic.split(' ')[0];
+        pillMy.textContent = `👤 งานของฉัน (${shortName})`;
+        pillMy.title = `แสดงเฉพาะงานที่ฉันรับผิดชอบ: ${myPic}`;
+      } else {
+        pillMy.textContent = '👤 งานของฉัน';
+        pillMy.title = 'แสดงเฉพาะงานที่ฉันรับผิดชอบ';
+      }
+    }
+  }
+
   function renderStats(){
     const total = items.length;
     const done = items.filter(i => i.status === 'Action Done').length;
@@ -529,7 +704,14 @@
     const focus = items.filter(i => i.status !== 'Action Done' && (i.priority === 'High' || i.priority === 'สูง')).length;
     const pct = total ? Math.round((done/total)*100) : 0;
     const focusHtml = focus > 0 ? ` &nbsp;·&nbsp; <span class="sf">🔥 ${focus} ต้อง Focus</span>` : '';
-    statsEl.innerHTML = `<b>${total}</b> งานทั้งหมด &nbsp;·&nbsp; <span class="sd">${done} เสร็จแล้ว</span> &nbsp;·&nbsp; <span class="sn">${next} ยังไม่เสร็จ</span>${focusHtml} &nbsp;·&nbsp; ${pct}% เสร็จ`;
+    
+    let filterHtml = '';
+    if(isFilterActive()){
+      const matchingCount = items.filter(matchesFilter).length;
+      filterHtml = ` &nbsp;·&nbsp; <span style="background:var(--accent);color:#fff;padding:2px 8px;border-radius:10px;font-size:11.5px;font-weight:600">กรองอยู่: แสดง ${matchingCount} จาก ${total} งาน</span>`;
+    }
+
+    statsEl.innerHTML = `<b>${total}</b> งานทั้งหมด &nbsp;·&nbsp; <span class="sd">${done} เสร็จแล้ว</span> &nbsp;·&nbsp; <span class="sn">${next} ยังไม่เสร็จ</span>${focusHtml} &nbsp;·&nbsp; ${pct}% เสร็จ${filterHtml}`;
   }
 
   function nextNoForCat(catId){
@@ -550,21 +732,23 @@
   function renderBody(){
     if(isEditingInBody()) return;
     bodyEl.innerHTML = '';
+    const hasFilter = isFilterActive();
     CATEGORIES.forEach(cat => {
-      const catItems = items.filter(i => i.cat === cat.id);
+      const allCatItems = items.filter(i => i.cat === cat.id);
+      const catItems = allCatItems.filter(matchesFilter);
 
       const wrap = document.createElement('div');
       wrap.className = 'qq2-cat';
 
       const title = document.createElement('div');
       title.className = 'qq2-cat-title';
-      title.textContent = cat.name;
+      title.innerHTML = `<span>${cat.name}</span> <span style="font-size:11.5px;color:var(--muted);font-weight:normal;margin-left:6px">(${catItems.length}${hasFilter ? ` / ทั้งหมด ${allCatItems.length}` : ''} งาน)</span>`;
       wrap.appendChild(title);
 
       if(catItems.length === 0){
         const empty = document.createElement('div');
         empty.className = 'qq2-empty';
-        empty.textContent = 'ไม่มีงานในหมวดนี้';
+        empty.textContent = hasFilter ? 'ไม่มีงานที่ตรงกับตัวกรองในหมวดนี้' : 'ไม่มีงานในหมวดนี้';
         wrap.appendChild(empty);
       } else {
         const table = document.createElement('table');
@@ -1358,8 +1542,66 @@
     setTimeout(() => msg.classList.remove('show'), 2800);
   };
 
+  // Filter Event Listeners
+  document.getElementById('qq2-filter-pill-all').onclick = () => {
+    clearAllFilters();
+  };
+
+  document.getElementById('qq2-filter-pill-my').onclick = () => {
+    const myPic = getCurrentUserPic();
+    if(!activeFilter.myTasksOnly && !myPic){
+      alert('ไม่พบชื่อผู้รับผิดชอบที่ตรงกับอีเมลที่เข้าสู่ระบบ สามารถเลือกชื่อของคุณจากดรอปดาวน์ "ผู้รับผิดชอบ" ด้านขวาได้ค่ะ');
+      return;
+    }
+    activeFilter.myTasksOnly = !activeFilter.myTasksOnly;
+    updateFilterUI();
+    renderBody();
+    renderStats();
+  };
+
+  document.getElementById('qq2-filter-pill-high').onclick = () => {
+    activeFilter.priority = activeFilter.priority === 'High' ? '' : 'High';
+    updateFilterUI();
+    renderBody();
+    renderStats();
+  };
+
+  document.getElementById('qq2-filter-pill-next').onclick = () => {
+    activeFilter.status = activeFilter.status === 'Next Step' ? '' : 'Next Step';
+    updateFilterUI();
+    renderBody();
+    renderStats();
+  };
+
+  document.getElementById('qq2-filter-pic').onchange = (e) => {
+    activeFilter.pic = e.target.value;
+    updateFilterUI();
+    renderBody();
+    renderStats();
+  };
+
+  document.getElementById('qq2-filter-priority').onchange = (e) => {
+    activeFilter.priority = e.target.value;
+    updateFilterUI();
+    renderBody();
+    renderStats();
+  };
+
+  document.getElementById('qq2-filter-search').oninput = (e) => {
+    activeFilter.search = e.target.value.trim().toLowerCase();
+    updateFilterUI();
+    renderBody();
+    renderStats();
+  };
+
+  document.getElementById('qq2-filter-clear').onclick = () => {
+    clearAllFilters();
+  };
+
   async function loadAppData(){
     weeks = await fetchWeeks();
+    populatePicFilterOptions();
+    updateFilterUI();
     const startId = weeks.length ? weeks[weeks.length-1].id : null;
     if(startId){
       currentWeekId = startId;
